@@ -18,7 +18,7 @@ function formatTime(seconds) {
 // ===== Sound Module =====
 const Sound = {
   enabled: true,
-  audioCtx: typeof AudioContext !== 'undefined' ? new webkitAudioContext() : null,
+  audioCtx: typeof AudioContext !== 'undefined' ? new AudioContext() : null,
 
   beep(freq = 880, duration = 0.18, type = 'sine', volume = 0.08) {
     if (!this.audioCtx || !this.enabled) return;
