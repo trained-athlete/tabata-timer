@@ -300,3 +300,109 @@ footer {
   font-size: 11px;
   color: var(--text);
 }
+
+/* Mobile improvements for small phones (iPhone 13 mini ~375px) */
+html, body {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0,0,0,0);
+}
+
+/* Respect safe-area on modern phones (notch & home indicator) */
+.app {
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
+
+@media (max-width: 420px) {
+  body {
+    padding: calc(12px + env(safe-area-inset-top, 0));
+  }
+
+  .app {
+    max-width: calc(100% - 16px);
+    border-radius: 12px;
+    margin: 0 8px;
+  }
+
+  header {
+    padding: 12px 14px;
+  }
+
+  header h1 {
+    font-size: 18px;
+  }
+
+  .mode-badge {
+    display: none;
+  }
+
+  .timer-face {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .subline {
+    font-size: 13px;
+  }
+
+  .controls {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 14px 12px;
+    min-height: 44px; /* target 44px touch size */
+    font-size: 15px;
+    border-radius: 10px;
+  }
+
+  .time {
+    font-size: clamp(34px, 10vw, 72px);
+  }
+
+  .settings {
+    grid-template-columns: 1fr;
+  }
+
+  .field {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .field label {
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .field input {
+    padding: 12px;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .toggles {
+    grid-template-columns: 1fr;
+  }
+
+  footer {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  .kbd {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .progress {
+    height: 10px;
+  }
+
+  .phase {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
