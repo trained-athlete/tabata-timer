@@ -8,6 +8,9 @@ const PHASE_LABELS = {
   done: 'Done'
 };
 
+// Timer controller (refactored to separate file)
+import { TimerController } from './timer.js';
+
 // ===== Utility Functions =====
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
@@ -113,7 +116,6 @@ const state = {
   },
   currentRound: 1,
   currentCycle: 1,
-  timerId: null,
   running: false,
   sessionTotalSeconds: 0,
   sessionElapsedSeconds: 0
@@ -210,125 +212,52 @@ function renderClock() {
   updateSubline();
 }
 
-function advanceToNextPhase() {
-  const totals = state.totals;
-  if (state.phase === 'prepare') {
-    state.phase = 'work';
-    state.remaining = totals.work;
-  } else if (state.phase === 'work') {
-    if (state.currentRound < totals.rounds && totals.rest > 0) {
-      state.phase = 'rest';
-      state.remaining = totals.rest;
-    } else {
-      handleRoundCompletion();
-    }
-  } else if (state.phase === 'rest') {
-    handleRoundCompletion();
-  } else if (state.phase === 'longrest') {
-    state.currentRound = 1;
-    state.phase = 'work';
-    state.remaining = totals.work;
-  }
-
-  playPhaseSound();
-  setPhase(state.phase);
-  renderClock();
-}
-
-function handleRoundCompletion() {
-  const totals = state.totals;
-  if (state.currentRound < totals.rounds) {
-    state.currentRound++;
-    state.phase = 'work';
-    state.remaining = totals.work;
-  } else {
-    handleCycleCompletion();
-  }
-}
-
-function handleCycleCompletion() {
-  const totals = state.totals;
-  if (state.currentCycle < totals.cycles) {
-    state.currentCycle++;
-    if (totals.longrest > 0) {
-      state.phase = 'longrest';
-      state.remaining = totals.longrest;
-    } else {
-      state.phase = 'work';
-      state.remaining = totals.work;
-      state.currentRound = 1;
-    }
-  } else {
-    state.phase = 'done';
-    state.remaining = 0;
-    stopTimer();
-  }
-}
-
+// TimerController now handles phase transitions and ticking. See `timer.js` for implementation.
 function playPhaseSound() {
   if (!elements.inputs.sessionBeep.checked) return;
   if (state.phase === 'work') Sound.bell();
   else if (state.phase === 'rest') Sound.tripleCountdown();
   else if (state.phase === 'longrest') Sound.beep(520, 0.18);
   else if (state.phase === 'done') Sound.bell();
-}
+} 
 
-function tick() {
-  if (!state.running) return;
-  state.remaining = Math.max(0, state.remaining - 1);
-  state.sessionElapsedSeconds = Math.min(state.sessionTotalSeconds, state.sessionElapsedSeconds + 1);
-  renderClock();
-  if (state.remaining <= 0 && state.phase !== 'done' && elements.inputs.autoNext.checked) {
-    advanceToNextPhase();
-  }
-}
+let timer = null;
 
 function startTimer() {
   if (state.running) return;
-  // ensure audio context is created/resumed from this user gesture (Safari/iOS require it)
   Sound.init();
   if (Sound.audioCtx && Sound.audioCtx.state === 'suspended') {
     Sound.audioCtx.resume();
   }
+  if (timer) timer.start();
   state.running = true;
   elements.btnStart.textContent = '▶ Start';
-  if (!state.timerId) {
-    state.timerId = setInterval(tick, 1000);
-  }
 }
 
 function pauseTimer() {
+  if (timer) timer.pause();
   state.running = false;
   elements.btnStart.textContent = '▶ Start';
 }
 
 function stopTimer() {
+  if (timer) timer.stop();
   state.running = false;
-  if (state.timerId) {
-    clearInterval(state.timerId);
-    state.timerId = null;
-  }
 }
 
 function resetSession() {
   stopTimer();
-  state.totals = getCurrentTotals();
-  state.currentRound = 1;
-  state.currentCycle = 1;
-  state.phase = 'prepare';
-  state.remaining = state.totals.prep;
-  state.sessionTotalSeconds = computeSessionTotal(state.totals);
-  state.sessionElapsedSeconds = 0;
-  setPhase('prepare');
-  renderClock();
+  const totals = getCurrentTotals();
+  if (timer) timer.reset(totals);
+  Object.assign(state, timer ? timer.getState() : { phase: 'prepare', remaining: totals.prep, totals });
+  setPhase(state.phase);
   updateStats();
   elements.summary.textContent = '';
 }
 
 function skipInterval() {
-  if (state.phase === 'done') return;
-  advanceToNextPhase();
-}
+  if (timer) timer.skip();
+} 
 
 // ===== Event Bindings =====
 elements.btnStart.addEventListener('click', startTimer);
@@ -345,13 +274,15 @@ elements.btnMute.addEventListener('click', () => {
 });
 
 // Input changes
-Object.values(elements.inputs).forEach(input => {
-  if (input.addEventListener) {
-    input.addEventListener('change', () => {
-      saveSettings();
-      resetSession();
-    });
-  }
+Object.entries(elements.inputs).forEach(([key, input]) => {
+  if (!input || !input.addEventListener) return;
+  input.addEventListener('change', () => {
+    if (key === 'autoNext' && timer) {
+      timer.setAutoNext(input.checked);
+    }
+    saveSettings();
+    resetSession();
+  });
 });
 
 // Keyboard shortcuts
@@ -383,4 +314,16 @@ function unlockAudioOnFirstGesture() {
 unlockAudioOnFirstGesture();
 
 loadSettings();
+
+// create timer with callbacks that sync UI
+function createTimer() {
+  return new TimerController(getCurrentTotals(), {
+    autoNext: elements.inputs.autoNext.checked,
+    onTick: s => { Object.assign(state, s); renderClock(); },
+    onPhase: s => { Object.assign(state, s); playPhaseSound(); setPhase(s.phase); renderClock(); },
+    onDone: () => { setPhase('done'); renderClock(); }
+  });
+}
+
+timer = createTimer();
 resetSession();
