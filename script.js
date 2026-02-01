@@ -18,18 +18,47 @@ function formatTime(seconds) {
 // ===== Sound Module =====
 const Sound = {
   enabled: true,
-  audioCtx: typeof AudioContext !== 'undefined' ? new AudioContext() : null,
+  audioCtx: null,
+  AudioContextClass: (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) || null,
 
-  beep(freq = 880, duration = 0.18, type = 'sine', volume = 0.08) {
-    if (!this.audioCtx || !this.enabled) return;
-    const oscillator = this.audioCtx.createOscillator();
-    const gainNode = this.audioCtx.createGain();
+  init() {
+    if (!this.AudioContextClass) return null;
+    if (!this.audioCtx) {
+      try {
+        this.audioCtx = new this.AudioContextClass();
+      } catch (e) {
+        console.warn('AudioContext init failed:', e);
+        this.audioCtx = null;
+      }
+    }
+    return this.audioCtx;
+  },
+
+  async ensureUnlocked() {
+    const ctx = this.init();
+    if (!ctx) return null;
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch (e) {
+        // resume may fail silently on some browsers if not a user gesture
+      }
+    }
+    return ctx;
+  },
+
+  async beep(freq = 880, duration = 0.18, type = 'sine', volume = 0.08) {
+    if (!this.enabled) return;
+    const ctx = await this.ensureUnlocked();
+    if (!ctx) return;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
     oscillator.type = type;
     oscillator.frequency.value = freq;
     gainNode.gain.value = volume;
-    oscillator.connect(gainNode).connect(this.audioCtx.destination);
+    oscillator.connect(gainNode).connect(ctx.destination);
     oscillator.start();
-    oscillator.stop(this.audioCtx.currentTime + duration);
+    oscillator.stop(ctx.currentTime + duration);
   },
 
   tripleCountdown() {
@@ -40,7 +69,7 @@ const Sound = {
 
   bell() {
     this.beep(440, 0.25, 'triangle', 0.12);
-    this.beep(880, 0.25, 'sine', 0.08);
+    setTimeout(() => this.beep(880, 0.25, 'sine', 0.08), 50);
   }
 };
 
@@ -256,6 +285,8 @@ function tick() {
 
 function startTimer() {
   if (state.running) return;
+  // ensure audio context is created/resumed from this user gesture (Safari/iOS require it)
+  Sound.init();
   if (Sound.audioCtx && Sound.audioCtx.state === 'suspended') {
     Sound.audioCtx.resume();
   }
@@ -339,5 +370,17 @@ window.addEventListener('keydown', (event) => {
 });
 
 // ===== Initialization =====
+/* Unlock audio on first user gesture (needed on Safari/iOS) */
+function unlockAudioOnFirstGesture() {
+  function unlock() {
+    Sound.ensureUnlocked && Sound.ensureUnlocked();
+    window.removeEventListener('touchstart', unlock);
+    window.removeEventListener('mousedown', unlock);
+  }
+  window.addEventListener('touchstart', unlock, { passive: true });
+  window.addEventListener('mousedown', unlock, { passive: true });
+}
+unlockAudioOnFirstGesture();
+
 loadSettings();
 resetSession();
