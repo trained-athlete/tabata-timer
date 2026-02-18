@@ -76,8 +76,11 @@ const Sound = {
   },
 
   warning() {
-    this.beep(770, 0.1, 'sine', 0.1);
-    setTimeout(() => this.beep(770, 0.1, 'sine', 0.1), 150);
+    // play three identical tones; each lasts 0.25 s and they are spaced
+    // 250 ms apart so they don’t overlap
+    this.beep(770, 0.25, 'sine', 0.1);
+    setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 250);
+    setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
   }
 };
 
