@@ -132,31 +132,27 @@ header h1 {
   padding: 8px 12px;
   border-radius: 8px;
   display: inline-block;
-  border: 1px solid var(--border);
+  color: #ffffff;
+  background: #333333;
+  border: none;
+  font-weight: 600;
 }
 
 .phase.work {
-  color: #10b981;
-  border-color: #064e3b;
-  background: rgba(16,185,129,0.08);
+  background: #10b981;
 }
 
 .phase.rest {
-  color: #f97316;
-  border-color: #7c2d12;
-  background: rgba(249,115,22,0.08);
+  background: #f97316;
 }
 
 .phase.prepare {
-  color: #3b82f6;
-  border-color: #1e3a8a;
-  background: rgba(59,130,246,0.08);
+  background: #3b82f6;
 }
 
 .phase.done {
-  color: #eab308;
-  border-color: #78350f;
-  background: rgba(234,179,8,0.08);
+  color: #000000;
+  background: #eab308;
 }
 
 .time {
