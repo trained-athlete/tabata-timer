@@ -4,7 +4,7 @@
   --text: #e5e7eb;      /* gray-200 */
   --muted: #9ca3af;     /* gray-400 */
   --accent: #22c55e;    /* green-500 */
-  --accent2: #ef4444;   /* red-500 */
+  --accent2: #DE7032;   /* orange */
   --accent3: #3b82f6;   /* blue-500 */
   --accent4: #f59e0b;   /* amber-500 */
   --border: #1f2937;    /* gray-800 */
@@ -17,7 +17,7 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  background: #ef4444;
+  background: #DE7032;
   color: #ffffff;
   min-height: 100vh;
   display: grid;
