@@ -17,7 +17,11 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  background: #DE7032;
+  background: #DE7032  header { border‑bottom: 1px solid var(--border); }
+  .field { border: 1px solid var(--border); … }
+  .btn { border: 1px solid var(--border); }
+  .progress { border: 1px solid var(--border); }
+  /* …and the toggle, kbd, footer etc. */;
   color: #ffffff;
   min-height: 100vh;
   display: grid;
@@ -80,13 +84,6 @@ header h1 {
   letter-spacing: 0.4px;
 }
 
-.mode-badge {
-  font-size: 12px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--muted);
-}
 
 .grid {
   display: grid;
@@ -366,9 +363,6 @@ html, body {
     font-size: 18px;
   }
 
-  .mode-badge {
-    display: none;
-  }
 
   .timer-face {
     padding: 8px;
