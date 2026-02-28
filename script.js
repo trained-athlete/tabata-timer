@@ -12,6 +12,9 @@ const PHASE_LABELS = {
 const MODES = ['tabata', 'emom', 'fortime', 'amrap'];
 let currentMode = 'tabata';
 
+// keys saved to localStorage
+const SETTING_KEYS = ['prep','work','rest','rounds','cycles','longrest'];
+
 function modeLabel(mode) {
   switch (mode) {
     case 'tabata': return 'Tabata Timer';
@@ -34,37 +37,35 @@ function setMode(mode) {
     btn.classList.toggle('selected', btn.getAttribute('data-mode') === mode);
   });
   updateSettingsVisibility();
-  // adjust some field labels based on mode
-  const workLabel = document.querySelector('label[for="work"]');
-  const workInfo = workLabel ? workLabel.nextElementSibling : null;
-  const roundsLabel = document.querySelector('label[for="rounds"]');
-  const roundsInfo = roundsLabel ? roundsLabel.nextElementSibling : null;
-  if (workLabel) {
+  // adjust some field labels based on mode using cached label nodes
+  const { work, workInfo, rest, restInfo, rounds, roundsInfo } = elements.labels;
+
+  if (work) {
     if (mode === 'fortime' || mode === 'amrap') {
-      workLabel.textContent = 'Duration (sec)';
+      work.textContent = 'Duration (sec)';
       if (workInfo) workInfo.textContent = '';
     } else {
-      workLabel.textContent = 'Work (sec)';
+      work.textContent = 'Work (sec)';
       if (workInfo) workInfo.textContent = 'High-intensity interval';
     }
   }
-  const restLabel = document.querySelector('label[for="rest"]');
-  const restInfo = restLabel ? restLabel.nextElementSibling : null;
-  if (restLabel) {
+
+  if (rest) {
     if (mode === 'emom') {
-      restLabel.textContent = 'Rest (auto)';
+      rest.textContent = 'Rest (auto)';
       if (restInfo) restInfo.textContent = 'Calculated as 60 - work';
     } else {
-      restLabel.textContent = 'Rest (sec)';
+      rest.textContent = 'Rest (sec)';
       if (restInfo) restInfo.textContent = 'Recovery interval';
     }
   }
-  if (roundsLabel) {
+
+  if (rounds) {
     if (mode === 'emom') {
-      roundsLabel.textContent = 'Minutes';
+      rounds.textContent = 'Minutes';
       if (roundsInfo) roundsInfo.textContent = 'Number of minutes';
     } else {
-      roundsLabel.textContent = 'Rounds per cycle';
+      rounds.textContent = 'Rounds per cycle';
       if (roundsInfo) roundsInfo.textContent = 'Work+Rest repetitions';
     }
   }
@@ -182,8 +183,20 @@ const elements = {
     longrest: document.getElementById('longrest'),
     autoNext: document.getElementById('autoNext'),
     sessionBeep: document.getElementById('sessionBeep')
+  },
+  labels: {
+    work: document.querySelector('label[for="work"]'),
+    workInfo: null,
+    rest: document.querySelector('label[for="rest"]'),
+    restInfo: null,
+    rounds: document.querySelector('label[for="rounds"]'),
+    roundsInfo: null
   }
 };
+// populate info nodes after DOM ready
+if (elements.labels.work) elements.labels.workInfo = elements.labels.work.nextElementSibling;
+if (elements.labels.rest) elements.labels.restInfo = elements.labels.rest.nextElementSibling;
+if (elements.labels.rounds) elements.labels.roundsInfo = elements.labels.rounds.nextElementSibling;
 
 // ===== State =====
 const state = {
@@ -210,7 +223,7 @@ function loadSettings() {
   if (!raw) return;
   try {
     const settings = JSON.parse(raw);
-    ['prep', 'work', 'rest', 'rounds', 'cycles', 'longrest'].forEach(key => {
+    SETTING_KEYS.forEach(key => {
       if (typeof settings[key] === 'number') {
         elements.inputs[key].value = settings[key];
       }
@@ -237,48 +250,39 @@ function saveSettings() {
 }
 
 // ===== Helpers =====
-function getCurrentTotals() {
-  const work = +elements.inputs.work.value || 1;
-  if (currentMode === 'tabata') {
-    return {
-      prep: +elements.inputs.prep.value || 0,
-      work,
-      rest: +elements.inputs.rest.value || 0,
-      rounds: Math.max(1, +elements.inputs.rounds.value || 1),
-      cycles: Math.max(1, +elements.inputs.cycles.value || 1),
-      longrest: +elements.inputs.longrest.value || 0
-    };
-  } else if (currentMode === 'emom') {
-    // EMOM: work interval each minute, rest is whatever is left
-    const minutes = Math.max(1, +elements.inputs.rounds.value || 1);
+const TOTALS_BUILDERS = {
+  tabata: (inputs) => ({
+    prep: +inputs.prep.value || 0,
+    work: +inputs.work.value || 1,
+    rest: +inputs.rest.value || 0,
+    rounds: Math.max(1, +inputs.rounds.value || 1),
+    cycles: Math.max(1, +inputs.cycles.value || 1),
+    longrest: +inputs.longrest.value || 0
+  }),
+  emom: (inputs) => {
+    const work = +inputs.work.value || 1;
     return {
       prep: 0,
       work,
       rest: Math.max(0, 60 - work),
-      rounds: minutes,
+      rounds: Math.max(1, +inputs.rounds.value || 1),
       cycles: 1,
       longrest: 0
     };
-  } else if (currentMode === 'fortime' || currentMode === 'amrap') {
-    // single interval equal to 'work' value
-    return {
-      prep: 0,
-      work,
-      rest: 0,
-      rounds: 1,
-      cycles: 1,
-      longrest: 0
-    };
+  },
+  fortime: (inputs) => {
+    const work = +inputs.work.value || 1;
+    return { prep: 0, work, rest: 0, rounds: 1, cycles: 1, longrest: 0 };
+  },
+  amrap: (inputs) => {
+    // same structure as fortime
+    return TOTALS_BUILDERS.fortime(inputs);
   }
-  // fallback
-  return {
-    prep: 0,
-    work,
-    rest: 0,
-    rounds: 1,
-    cycles: 1,
-    longrest: 0
-  };
+};
+
+function getCurrentTotals() {
+  const builder = TOTALS_BUILDERS[currentMode] || TOTALS_BUILDERS.tabata;
+  return builder(elements.inputs);
 }
 
 function computeSessionTotal(totals) {
@@ -291,22 +295,20 @@ function computeSessionTotal(totals) {
 function updateStats() {
   const totals = getCurrentTotals();
   const total = computeSessionTotal(totals);
-  let info = `Total session time: ${formatTime(total)} • Work: ${totals.work}s`;
-  if (totals.rest) info += ` • Rest: ${totals.rest}s`;
+  const parts = [`Total session time: ${formatTime(total)}`];
+  parts.push(`Work: ${totals.work}s`);
+  if (totals.rest) parts.push(`Rest: ${totals.rest}s`);
 
-  if (currentMode === 'tabata' || currentMode === 'emom') {
-    // show rounds and cycles/ minutes for tabata/emom
-    if (currentMode === 'emom') {
-      info += ` • Minutes: ${totals.rounds}`;
-    } else {
-      info += ` • Rounds: ${totals.rounds}`;
-      info += ` • Cycles: ${totals.cycles}`;
-    }
+  if (currentMode === 'emom') {
+    parts.push(`Minutes: ${totals.rounds}`);
+  } else if (currentMode === 'tabata') {
+    parts.push(`Rounds: ${totals.rounds}`);
+    parts.push(`Cycles: ${totals.cycles}`);
   } else if (currentMode === 'fortime' || currentMode === 'amrap') {
-    info += ` • Duration: ${formatTime(totals.work)}`;
+    parts.push(`Duration: ${formatTime(totals.work)}`);
   }
 
-  elements.stats.textContent = info;
+  elements.stats.textContent = parts.join(' • ');
 }
 
 function setPhase(phase) {
