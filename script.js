@@ -8,6 +8,81 @@ const PHASE_LABELS = {
   done: 'Done'
 };
 
+// Training modes supported by the app
+const MODES = ['tabata', 'emom', 'fortime', 'amrap'];
+let currentMode = 'tabata';
+
+function modeLabel(mode) {
+  switch (mode) {
+    case 'tabata': return 'Tabata Timer';
+    case 'emom': return 'EMOM Timer';
+    case 'fortime': return 'For Time';
+    case 'amrap': return 'AMRAP';
+    default: return 'Timer';
+  }
+}
+
+function setMode(mode) {
+  if (!MODES.includes(mode)) mode = 'tabata';
+  currentMode = mode;
+  document.title = modeLabel(mode);
+  const appTitle = document.getElementById('appTitle');
+  if (appTitle) appTitle.textContent = modeLabel(mode);
+  const appEl = document.querySelector('.app');
+  if (appEl) appEl.setAttribute('aria-label', modeLabel(mode));
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.getAttribute('data-mode') === mode);
+  });
+  updateSettingsVisibility();
+  // adjust some field labels based on mode
+  const workLabel = document.querySelector('label[for="work"]');
+  const workInfo = workLabel ? workLabel.nextElementSibling : null;
+  const roundsLabel = document.querySelector('label[for="rounds"]');
+  const roundsInfo = roundsLabel ? roundsLabel.nextElementSibling : null;
+  if (workLabel) {
+    if (mode === 'fortime' || mode === 'amrap') {
+      workLabel.textContent = 'Duration (sec)';
+      if (workInfo) workInfo.textContent = '';
+    } else {
+      workLabel.textContent = 'Work (sec)';
+      if (workInfo) workInfo.textContent = 'High-intensity interval';
+    }
+  }
+  const restLabel = document.querySelector('label[for="rest"]');
+  const restInfo = restLabel ? restLabel.nextElementSibling : null;
+  if (restLabel) {
+    if (mode === 'emom') {
+      restLabel.textContent = 'Rest (auto)';
+      if (restInfo) restInfo.textContent = 'Calculated as 60 - work';
+    } else {
+      restLabel.textContent = 'Rest (sec)';
+      if (restInfo) restInfo.textContent = 'Recovery interval';
+    }
+  }
+  if (roundsLabel) {
+    if (mode === 'emom') {
+      roundsLabel.textContent = 'Minutes';
+      if (roundsInfo) roundsInfo.textContent = 'Number of minutes';
+    } else {
+      roundsLabel.textContent = 'Rounds per cycle';
+      if (roundsInfo) roundsInfo.textContent = 'Work+Rest repetitions';
+    }
+  }
+  resetSession();
+}
+
+function updateSettingsVisibility() {
+  document.querySelectorAll('.field[data-modes]').forEach(el => {
+    const modes = el.getAttribute('data-modes').split(/\s+/);
+    if (modes.includes(currentMode)) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
+
+
 // Timer controller (refactored to separate file)
 import { TimerController } from './timer.js';
 
@@ -77,7 +152,7 @@ const Sound = {
 
   warning() {
     // play three identical tones; each lasts 0.25 s and they are spaced
-    // 250 ms apart so they don’t overlap
+    // 500 ms apart so they don’t overlap
     this.beep(770, 0.25, 'sine', 0.1);
     setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
     setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
@@ -144,6 +219,9 @@ function loadSettings() {
     elements.inputs.sessionBeep.checked = !!settings.sessionBeep;
     Sound.enabled = settings.soundEnabled !== false;
     elements.btnMute.textContent = Sound.enabled ? '🔈 Sound: On' : '🔇 Sound: Off';
+    if (settings.mode) {
+      setMode(settings.mode);
+    }
   } catch (error) {
     console.warn('Failed to load settings:', error);
   }
@@ -154,18 +232,52 @@ function saveSettings() {
   settings.autoNext = elements.inputs.autoNext.checked;
   settings.sessionBeep = elements.inputs.sessionBeep.checked;
   settings.soundEnabled = Sound.enabled;
+  settings.mode = currentMode;
   localStorage.setItem(LS_KEY, JSON.stringify(settings));
 }
 
 // ===== Helpers =====
 function getCurrentTotals() {
+  const work = +elements.inputs.work.value || 1;
+  if (currentMode === 'tabata') {
+    return {
+      prep: +elements.inputs.prep.value || 0,
+      work,
+      rest: +elements.inputs.rest.value || 0,
+      rounds: Math.max(1, +elements.inputs.rounds.value || 1),
+      cycles: Math.max(1, +elements.inputs.cycles.value || 1),
+      longrest: +elements.inputs.longrest.value || 0
+    };
+  } else if (currentMode === 'emom') {
+    // EMOM: work interval each minute, rest is whatever is left
+    const minutes = Math.max(1, +elements.inputs.rounds.value || 1);
+    return {
+      prep: 0,
+      work,
+      rest: Math.max(0, 60 - work),
+      rounds: minutes,
+      cycles: 1,
+      longrest: 0
+    };
+  } else if (currentMode === 'fortime' || currentMode === 'amrap') {
+    // single interval equal to 'work' value
+    return {
+      prep: 0,
+      work,
+      rest: 0,
+      rounds: 1,
+      cycles: 1,
+      longrest: 0
+    };
+  }
+  // fallback
   return {
-    prep: +elements.inputs.prep.value || 0,
-    work: +elements.inputs.work.value || 1,
-    rest: +elements.inputs.rest.value || 0,
-    rounds: Math.max(1, +elements.inputs.rounds.value || 1),
-    cycles: Math.max(1, +elements.inputs.cycles.value || 1),
-    longrest: +elements.inputs.longrest.value || 0
+    prep: 0,
+    work,
+    rest: 0,
+    rounds: 1,
+    cycles: 1,
+    longrest: 0
   };
 }
 
@@ -179,8 +291,22 @@ function computeSessionTotal(totals) {
 function updateStats() {
   const totals = getCurrentTotals();
   const total = computeSessionTotal(totals);
-  elements.stats.textContent =
-    `Total session time: ${formatTime(total)} • Work: ${totals.work}s • Rest: ${totals.rest}s • Rounds: ${totals.rounds} • Cycles: ${totals.cycles}`;
+  let info = `Total session time: ${formatTime(total)} • Work: ${totals.work}s`;
+  if (totals.rest) info += ` • Rest: ${totals.rest}s`;
+
+  if (currentMode === 'tabata' || currentMode === 'emom') {
+    // show rounds and cycles/ minutes for tabata/emom
+    if (currentMode === 'emom') {
+      info += ` • Minutes: ${totals.rounds}`;
+    } else {
+      info += ` • Rounds: ${totals.rounds}`;
+      info += ` • Cycles: ${totals.cycles}`;
+    }
+  } else if (currentMode === 'fortime' || currentMode === 'amrap') {
+    info += ` • Duration: ${formatTime(totals.work)}`;
+  }
+
+  elements.stats.textContent = info;
 }
 
 function setPhase(phase) {
@@ -273,6 +399,15 @@ function skipInterval() {
 } 
 
 // ===== Event Bindings =====
+// mode selector buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const m = btn.getAttribute('data-mode');
+    setMode(m);
+    saveSettings();
+  });
+});
+
 elements.btnStart.addEventListener('click', startTimer);
 elements.btnPause.addEventListener('click', pauseTimer);
 elements.btnReset.addEventListener('click', () => {
@@ -327,6 +462,13 @@ function unlockAudioOnFirstGesture() {
 unlockAudioOnFirstGesture();
 
 loadSettings();
+// default mode if none set
+if (!MODES.includes(currentMode)) {
+  setMode('tabata');
+} else {
+  // make sure visibility is correct in case loadSettings didn't call it directly
+  updateSettingsVisibility();
+}
 
 // create timer with callbacks that sync UI
 function createTimer() {
