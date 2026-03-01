@@ -105,6 +105,8 @@ const Sound = {
     if (!this.audioCtx) {
       try {
         this.audioCtx = new this.AudioContextClass();
+        // expose for tests
+        if (typeof window !== 'undefined') window._TestAudioCtx = this.audioCtx;
       } catch (e) {
         console.warn('AudioContext init failed:', e);
         this.audioCtx = null;
@@ -129,7 +131,7 @@ const Sound = {
   async beep(freq = 880, duration = 0.18, type = 'sine', volume = 0.08) {
     if (!this.enabled) return;
     const ctx = await this.ensureUnlocked();
-    if (!ctx) return;
+    if (!ctx || ctx.state !== 'running') return; // nothing to do if still suspended
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     oscillator.type = type;
@@ -150,6 +152,9 @@ const Sound = {
     this.beep(440, 0.25, 'triangle', 0.12);
     setTimeout(() => this.beep(880, 0.25, 'sine', 0.08), 50);
   },
+  
+  // expose to global for testing/debugging
+  _expose() { if (typeof window !== 'undefined') window.Sound = this; },
 
   warning() {
     // play three identical tones; each lasts 0.25 s and they are spaced
@@ -159,6 +164,9 @@ const Sound = {
     setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
   }
 };
+
+// make sound object available globally (used by automated tests)
+Sound._expose && Sound._expose();
 
 // ===== DOM Elements =====
 const elements = {
@@ -193,6 +201,18 @@ const elements = {
     roundsInfo: null
   }
 };
+// populate info nodes after DOM ready
+
+// resume audio context whenever the window becomes active/visible
+function resumeOnActivation() {
+  // ignore promise; we'll try again later if it fails
+  Sound.ensureUnlocked();
+}
+window.addEventListener('focus', resumeOnActivation);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) resumeOnActivation();
+});
+
 // populate info nodes after DOM ready
 if (elements.labels.work) elements.labels.workInfo = elements.labels.work.nextElementSibling;
 if (elements.labels.rest) elements.labels.restInfo = elements.labels.rest.nextElementSibling;
