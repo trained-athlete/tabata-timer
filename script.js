@@ -69,6 +69,18 @@ function setMode(mode) {
       if (roundsInfo) roundsInfo.textContent = 'Work+Rest repetitions';
     }
   }
+  // adjust the input constraints for EMOM mode (minutes: 10-60)
+  if (elements.inputs && elements.inputs.rounds) {
+    if (mode === 'emom') {
+      elements.inputs.rounds.min = 10;
+      elements.inputs.rounds.max = 60;
+      if (+elements.inputs.rounds.value < 10) elements.inputs.rounds.value = 10;
+    } else {
+      elements.inputs.rounds.min = 1;
+      elements.inputs.rounds.max = 9999;
+      if (+elements.inputs.rounds.value < 1) elements.inputs.rounds.value = 1;
+    }
+  }
   resetSession();
 }
 
@@ -138,8 +150,59 @@ const Sound = {
     oscillator.frequency.value = freq;
     gainNode.gain.value = volume;
     oscillator.connect(gainNode).connect(ctx.destination);
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + duration);
+    // default: play immediately at audioContext time
+    const startAt = ctx.currentTime;
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration);
+  },
+
+  // schedule a beep at a specific AudioContext time (absolute). If `when` is null, plays immediately.
+  async scheduleBeep({ freq = 880, duration = 0.18, type = 'sine', volume = 0.08, when = null } = {}) {
+    if (!this.enabled) return;
+    const ctx = await this.ensureUnlocked();
+    if (!ctx || ctx.state !== 'running') return;
+    const startAt = (typeof when === 'number') ? when : ctx.currentTime;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+    gainNode.gain.value = volume;
+    oscillator.connect(gainNode).connect(ctx.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration);
+  },
+
+  shortBeep() { this.scheduleBeep({ freq: 880, duration: 0.12, type: 'sine', volume: 0.09 }); },
+  doubleBeep() {
+    // two quick short beeps
+    this.scheduleBeep({ freq: 880, duration: 0.12, type: 'sine', volume: 0.09 });
+    // schedule second after 180ms
+    const ctx = this.audioCtx;
+    if (ctx) this.scheduleBeep({ freq: 880, duration: 0.12, type: 'sine', volume: 0.09, when: ctx.currentTime + 0.18 });
+  },
+  alarmBeep() { this.scheduleBeep({ freq: 660, duration: 0.5, type: 'sawtooth', volume: 0.14 }); },
+
+  // Wake Lock helpers to keep screen on where supported
+  async requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator && !this._wakeLock) {
+        this._wakeLock = await navigator.wakeLock.request('screen');
+        this._wakeLock.addEventListener('release', () => { this._wakeLock = null; });
+      }
+    } catch (e) {
+      // ignore failures; not critical
+    }
+  },
+
+  async releaseWakeLock() {
+    try {
+      if (this._wakeLock) {
+        await this._wakeLock.release();
+        this._wakeLock = null;
+      }
+    } catch (e) {
+      // ignore
+    }
   },
 
   tripleCountdown() {
@@ -159,9 +222,15 @@ const Sound = {
   warning() {
     // play three identical tones; each lasts 0.25 s and they are spaced
     // 500 ms apart so they don’t overlap
-    this.beep(770, 0.25, 'sine', 0.1);
-    setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
-    setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
+    this.scheduleBeep({ freq: 770, duration: 0.25, type: 'sine', volume: 0.1 });
+    const ctx = this.audioCtx;
+    if (ctx) {
+      this.scheduleBeep({ freq: 770, duration: 0.25, type: 'sine', volume: 0.1, when: ctx.currentTime + 0.5 });
+      this.scheduleBeep({ freq: 770, duration: 0.25, type: 'sine', volume: 0.1, when: ctx.currentTime + 1.0 });
+    } else {
+      setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 500);
+      setTimeout(() => this.beep(770, 0.25, 'sine', 0.1), 1000);
+    }
   }
 };
 
@@ -363,9 +432,27 @@ function getIntervalDuration(phase) {
 }
 
 function renderClock() {
-  elements.clock.textContent = formatTime(state.remaining);
+  // For EMOM mode, display remaining time in the current minute (work+rest = 60s)
+  let displayRemaining = state.remaining;
+  if (currentMode === 'emom') {
+    if (state.phase === 'work') {
+      // time until minute end = remaining work + rest
+      displayRemaining = state.remaining + (state.totals.rest || 0);
+    } else {
+      // during rest or other phases, minute remaining is the phase remaining
+      displayRemaining = state.remaining;
+    }
+  }
+  elements.clock.textContent = formatTime(displayRemaining);
   updateProgressBars();
   updateSubline();
+  // show total remaining workout time in the footer summary
+  const totalLeft = Math.max(0, (state.sessionTotalSeconds || 0) - (state.sessionElapsedSeconds || 0));
+  if (currentMode === 'emom') {
+    elements.summary.textContent = `Total remaining: ${formatTime(totalLeft)}`;
+  } else {
+    elements.summary.textContent = '';
+  }
 }
 
 // TimerController now handles phase transitions and ticking. See `timer.js` for implementation.
@@ -387,23 +474,31 @@ let timer = null;
 function startTimer() {
   if (state.running) return;
   Sound.init();
-  if (Sound.audioCtx && Sound.audioCtx.state === 'suspended') {
-    Sound.audioCtx.resume();
-  }
+  // ensure audio unlocked (user gesture) and request wake lock where supported
+  Sound.ensureUnlocked().then(() => {
+    Sound.requestWakeLock();
+  });
   if (timer) timer.start();
   state.running = true;
-  elements.btnStart.textContent = '▶ Start';
+  // play initial beep for EMOM start
+  if (currentMode === 'emom' && elements.inputs.sessionBeep.checked) {
+    Sound.shortBeep();
+  }
+  elements.btnStart.textContent = 'Running';
 }
 
 function pauseTimer() {
   if (timer) timer.pause();
   state.running = false;
+  // release wake lock to save battery while paused
+  Sound.releaseWakeLock();
   elements.btnStart.textContent = '▶ Start';
 }
 
 function stopTimer() {
   if (timer) timer.stop();
   state.running = false;
+  Sound.releaseWakeLock();
 }
 
 function resetSession() {
