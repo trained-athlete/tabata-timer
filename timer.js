@@ -1,4 +1,13 @@
 // TimerController: pure timing/state logic with callbacks
+
+// helper used by both timer and UI for session-length calculation
+export function computeSessionTotal(totals) {
+  const oneRound = totals.work + totals.rest;
+  const perCycle = totals.prep + (oneRound * totals.rounds);
+  const betweenCycles = (totals.cycles > 1) ? (totals.longrest * (totals.cycles - 1)) : 0;
+  return (perCycle * totals.cycles) + betweenCycles;
+}
+
 export class TimerController {
   constructor(totals, { autoNext = true, onTick = () => {}, onPhase = () => {}, onDone = () => {}, onWarning = () => {} } = {}) {
     this.totals = { ...totals };
