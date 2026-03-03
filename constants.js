@@ -10,7 +10,7 @@ export const PHASE_LABELS = {
   done: 'Done'
 };
 
-export const MODES = ['tabata', 'emom', 'fortime', 'amrap'];
+export const MODES = ['tabata', 'emom'];
 
 // keys saved to localStorage (same ordering used when saving/loading)
 export const SETTING_KEYS = ['prep','work','rest','rounds','cycles','longrest'];

@@ -121,8 +121,6 @@ export function renderStats(elementsObj, totals, currentMode) {
   } else if (currentMode === 'tabata') {
     parts.push(`Rounds: ${totals.rounds}`);
     parts.push(`Cycles: ${totals.cycles}`);
-  } else if (currentMode === 'fortime' || currentMode === 'amrap') {
-    parts.push(`Duration: ${formatTime(totals.work)}`);
   }
   if (elementsObj.stats) elementsObj.stats.textContent = parts.join(' • ');
 }
@@ -130,13 +128,8 @@ export function renderStats(elementsObj, totals, currentMode) {
 export function updateModeLabels(elementsObj, currentMode) {
   const { work, workInfo, rest, restInfo, rounds, roundsInfo } = elementsObj.labels;
   if (work) {
-    if (currentMode === 'fortime' || currentMode === 'amrap') {
-      work.textContent = 'Duration (sec)';
-      if (workInfo) workInfo.textContent = '';
-    } else {
-      work.textContent = 'Work (sec)';
-      if (workInfo) workInfo.textContent = 'High-intensity interval';
-    }
+    work.textContent = 'Work (sec)';
+    if (workInfo) workInfo.textContent = 'High-intensity interval';
   }
   if (rest) {
     if (currentMode === 'emom') {

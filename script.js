@@ -6,8 +6,6 @@ function modeLabel(mode) {
   switch (mode) {
     case 'tabata': return 'Tabata Timer';
     case 'emom': return 'EMOM Timer';
-    case 'fortime': return 'For Time';
-    case 'amrap': return 'AMRAP';
     default: return 'Timer';
   }
 }
@@ -129,14 +127,7 @@ const TOTALS_BUILDERS = {
       longrest: 0
     };
   },
-  fortime: (inputs) => {
-    const work = +inputs.work.value || 1;
-    return { prep: 0, work, rest: 0, rounds: 1, cycles: 1, longrest: 0 };
-  },
-  amrap: (inputs) => {
-    // same structure as fortime
-    return TOTALS_BUILDERS.fortime(inputs);
-  }
+
 };
 
 function getCurrentTotals() {
