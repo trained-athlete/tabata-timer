@@ -194,7 +194,7 @@ function resetSession() {
   const totals = getCurrentTotals();
   if (timer) timer.reset(totals);
   Object.assign(state, timer ? timer.getState() : { phase: 'prepare', remaining: totals.prep, totals });
-  setPhase(state.phase);
+  setPhase(elements, state.phase);
   renderStats(elements, getCurrentTotals(), currentMode);
   elements.summary.textContent = '';
 }
@@ -282,10 +282,10 @@ if (!MODES.includes(currentMode)) {
 function createTimer() {
   return new TimerController(getCurrentTotals(), {
     autoNext: elements.inputs.autoNext.checked,
-    onTick: s => { Object.assign(state, s); renderClock(); },
-    onPhase: s => { Object.assign(state, s); playPhaseSound(); setPhase(s.phase); renderClock(); },
+    onTick: s => { Object.assign(state, s); renderClock(elements, state, currentMode); },
+    onPhase: s => { Object.assign(state, s); playPhaseSound(); setPhase(elements, s.phase); renderClock(elements, state, currentMode); },
     onWarning: s => { playWarningSound(); },
-    onDone: () => { setPhase('done'); renderClock(); }
+    onDone: () => { setPhase(elements, 'done'); renderClock(elements, state, currentMode); }
   });
 }
 

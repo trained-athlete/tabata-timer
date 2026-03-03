@@ -159,16 +159,17 @@ export function updateModeLabels(elementsObj, currentMode) {
 }
 
 // helpers for adjusting numeric input constraints, appropriate for EMOM vs others
+// helpers for adjusting numeric input constraints, appropriate for EMOM vs others
 export function adjustRoundsConstraints(elementsObj, currentMode) {
   const input = elementsObj.inputs && elementsObj.inputs.rounds;
   if (!input) return;
   if (currentMode === 'emom') {
-    input.min = 10;
-    input.max = 60;
+    input.setAttribute('min', '10');
+    input.setAttribute('max', '60');
     if (+input.value < 10) input.value = 10;
   } else {
-    input.min = 1;
-    input.max = 9999;
+    input.setAttribute('min', '1');
+    input.setAttribute('max', '9999');
     if (+input.value < 1) input.value = 1;
   }
 }
