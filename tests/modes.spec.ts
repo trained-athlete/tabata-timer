@@ -39,11 +39,18 @@ test('EMOM button is clickable and changes UI state', async ({ page }) => {
 // EMOM-specific UI adjustments
 test('EMOM mode UI changes', async ({ page }) => {
   await page.goto('file://' + process.cwd() + '/index.html');
-  await page.locator('.mode-btn[data-mode="emom"]').click();
-  await page.waitForTimeout(100);
 
-  await expect(page.locator('#rest')).not.toBeVisible();
-  await expect(page.locator('label[for="work"]')).toHaveText('Interval (sec)');
+  // click and wait for the mode to take effect
+  const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
+  await emomBtn.click();
+  await expect(emomBtn).toHaveClass(/selected/);
+
+  // now assert the rest *field* is hidden, not just the input
+  const restField = page.locator('.field:has(#rest)');
+  await expect(restField).toBeHidden();
+
+  await expect(page.locator('label[for="work"]'))
+    .toHaveText('Interval (sec)');
 });
 
 // EMOM timer progression to round 2
