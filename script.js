@@ -4,9 +4,12 @@ let currentMode = 'tabata';
 
 function modeLabel(mode) {
   switch (mode) {
-    case 'tabata': return 'Tabata Timer';
-    case 'emom': return 'EMOM Timer';
-    default: return 'Timer';
+    case 'tabata':
+      return 'Tabata Timer';
+    case 'emom':
+      return 'EMOM Timer';
+    default:
+      return 'Timer';
   }
 }
 
@@ -18,18 +21,26 @@ function setMode(mode) {
   if (appTitle) appTitle.textContent = modeLabel(mode);
   const appEl = document.querySelector('.app');
   if (appEl) appEl.setAttribute('aria-label', modeLabel(mode));
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.classList.toggle('selected', btn.getAttribute('data-mode') === mode);
-  });
+  document
+    .querySelectorAll('.mode-btn')
+    .forEach((btn) => {
+      btn.classList.toggle(
+        'selected',
+        btn.getAttribute('data-mode') === mode
+      );
+    });
+  // class used by CSS and some JS
+  document
+    .querySelector('.app')
+    .classList.toggle('emom', mode === 'emom');
   updateSettingsVisibility();
-  // update labels and input constraints using shared UI helpers
   updateModeLabels(elements, mode);
   adjustRoundsConstraints(elements, mode);
   resetSession();
 }
 
 function updateSettingsVisibility() {
-  document.querySelectorAll('.field[data-modes]').forEach(el => {
+  document.querySelectorAll('.field[data-modes]').forEach((el) => {
     const modes = el.getAttribute('data-modes').split(/\s+/);
     if (modes.includes(currentMode)) {
       el.classList.remove('hidden');
@@ -42,18 +53,23 @@ function updateSettingsVisibility() {
 // Timer controller (refactored to separate file)
 import { TimerController, computeSessionTotal } from './timer.js';
 import { Sound } from './sound.js';
-import { elements, formatTime, renderStats, setPhase, renderClock, updateModeLabels, adjustRoundsConstraints } from './ui.js';
+import {
+  elements,
+  formatTime,
+  renderStats,
+  setPhase,
+  renderClock,
+  updateModeLabels,
+  adjustRoundsConstraints
+} from './ui.js';
 
-// resume audio context whenever the window becomes active/visible
 function resumeOnActivation() {
-  // ignore promise; we'll try again later if it fails
   Sound.ensureUnlocked();
 }
 window.addEventListener('focus', resumeOnActivation);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) resumeOnActivation();
 });
-
 
 // ===== State =====
 const state = {
@@ -80,7 +96,7 @@ function loadSettings() {
   if (!raw) return;
   try {
     const settings = JSON.parse(raw);
-    SETTING_KEYS.forEach(key => {
+    SETTING_KEYS.forEach((key) => {
       if (typeof settings[key] === 'number') {
         elements.inputs[key].value = settings[key];
       }
@@ -88,7 +104,9 @@ function loadSettings() {
     elements.inputs.autoNext.checked = !!settings.autoNext;
     elements.inputs.sessionBeep.checked = !!settings.sessionBeep;
     Sound.enabled = settings.soundEnabled !== false;
-    elements.btnMute.textContent = Sound.enabled ? '🔈 Sound: On' : '🔇 Sound: Off';
+    elements.btnMute.textContent = Sound.enabled
+      ? '🔈 Sound: On'
+      : '🔇 Sound: Off';
     if (settings.mode) {
       setMode(settings.mode);
     }
@@ -121,26 +139,31 @@ const TOTALS_BUILDERS = {
     return {
       prep: 0,
       work,
-      rest: Math.max(0, 60 - work),
+      rest: 0,
       rounds: Math.max(1, +inputs.rounds.value || 1),
       cycles: 1,
       longrest: 0
     };
-  },
-
+  }
 };
 
 function getCurrentTotals() {
-  const builder = TOTALS_BUILDERS[currentMode] || TOTALS_BUILDERS.tabata;
+  const builder =
+    TOTALS_BUILDERS[currentMode] || TOTALS_BUILDERS.tabata;
   return builder(elements.inputs);
 }
-// TimerController now handles phase transitions and ticking. See `timer.js` for implementation.
+
 function playPhaseSound() {
   if (!elements.inputs.sessionBeep.checked) return;
-  if (state.phase === 'work') Sound.bell();
-  else if (state.phase === 'rest') Sound.tripleCountdown();
-  else if (state.phase === 'longrest') Sound.beep(520, 0.18);
-  else if (state.phase === 'done') Sound.bell();
+  if (currentMode === 'emom') {
+    if (state.phase === 'work') Sound.shortBeep();
+    else if (state.phase === 'done') Sound.bell();
+  } else {
+    if (state.phase === 'work') Sound.bell();
+    else if (state.phase === 'rest') Sound.tripleCountdown();
+    else if (state.phase === 'longrest') Sound.beep(520, 0.18);
+    else if (state.phase === 'done') Sound.bell();
+  }
 }
 
 function playWarningSound() {
@@ -153,23 +176,17 @@ let timer = null;
 function startTimer() {
   if (state.running) return;
   Sound.init();
-  // ensure audio unlocked (user gesture) and request wake lock where supported
   Sound.ensureUnlocked().then(() => {
     Sound.requestWakeLock();
   });
   if (timer) timer.start();
   state.running = true;
-  // play initial beep for EMOM start
-  if (currentMode === 'emom' && elements.inputs.sessionBeep.checked) {
-    Sound.shortBeep();
-  }
   elements.btnStart.textContent = 'Running';
 }
 
 function pauseTimer() {
   if (timer) timer.pause();
   state.running = false;
-  // release wake lock to save battery while paused
   Sound.releaseWakeLock();
   elements.btnStart.textContent = '▶ Start';
 }
@@ -184,7 +201,10 @@ function resetSession() {
   stopTimer();
   const totals = getCurrentTotals();
   if (timer) timer.reset(totals);
-  Object.assign(state, timer ? timer.getState() : { phase: 'prepare', remaining: totals.prep, totals });
+  Object.assign(
+    state,
+    timer ? timer.getState() : { phase: 'prepare', remaining: totals.prep, totals }
+  );
   setPhase(elements, state.phase);
   renderStats(elements, getCurrentTotals(), currentMode);
   elements.summary.textContent = '';
@@ -192,11 +212,10 @@ function resetSession() {
 
 function skipInterval() {
   if (timer) timer.skip();
-} 
+}
 
 // ===== Event Bindings =====
-// mode selector buttons
-document.querySelectorAll('.mode-btn').forEach(btn => {
+document.querySelectorAll('.mode-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const m = btn.getAttribute('data-mode');
     setMode(m);
@@ -213,11 +232,12 @@ elements.btnReset.addEventListener('click', () => {
 elements.btnSkip.addEventListener('click', skipInterval);
 elements.btnMute.addEventListener('click', () => {
   Sound.enabled = !Sound.enabled;
-  elements.btnMute.textContent = Sound.enabled ? '🔈 Sound: On' : '🔇 Sound: Off';
+  elements.btnMute.textContent = Sound.enabled
+    ? '🔈 Sound: On'
+    : '🔇 Sound: Off';
   saveSettings();
 });
 
-// Input changes
 Object.entries(elements.inputs).forEach(([key, input]) => {
   if (!input || !input.addEventListener) return;
   input.addEventListener('change', () => {
@@ -229,7 +249,6 @@ Object.entries(elements.inputs).forEach(([key, input]) => {
   });
 });
 
-// Keyboard shortcuts
 window.addEventListener('keydown', (event) => {
   if (event.code === 'Space') {
     event.preventDefault();
@@ -245,7 +264,6 @@ window.addEventListener('keydown', (event) => {
 });
 
 // ===== Initialization =====
-/* Unlock audio on first user gesture (needed on Safari/iOS) */
 function unlockAudioOnFirstGesture() {
   function unlock() {
     Sound.ensureUnlocked && Sound.ensureUnlocked();
@@ -258,25 +276,34 @@ function unlockAudioOnFirstGesture() {
 unlockAudioOnFirstGesture();
 
 loadSettings();
-// default mode if none set
 if (!MODES.includes(currentMode)) {
   setMode('tabata');
 } else {
-  // make sure visibility is correct in case loadSettings didn't call it directly
   updateSettingsVisibility();
-  // also ensure labels/constraints reflect the current mode
   updateModeLabels(elements, currentMode);
   adjustRoundsConstraints(elements, currentMode);
 }
 
-// create timer with callbacks that sync UI
 function createTimer() {
   return new TimerController(getCurrentTotals(), {
     autoNext: elements.inputs.autoNext.checked,
-    onTick: s => { Object.assign(state, s); renderClock(elements, state, currentMode); },
-    onPhase: s => { Object.assign(state, s); playPhaseSound(); setPhase(elements, s.phase); renderClock(elements, state, currentMode); },
-    onWarning: s => { playWarningSound(); },
-    onDone: () => { setPhase(elements, 'done'); renderClock(elements, state, currentMode); }
+    onTick: (s) => {
+      Object.assign(state, s);
+      renderClock(elements, state, currentMode);
+    },
+    onPhase: (s) => {
+      Object.assign(state, s);
+      playPhaseSound();
+      setPhase(elements, s.phase);
+      renderClock(elements, state, currentMode);
+    },
+    onWarning: (s) => {
+      playWarningSound();
+    },
+    onDone: () => {
+      setPhase(elements, 'done');
+      renderClock(elements, state, currentMode);
+    }
   });
 }
 

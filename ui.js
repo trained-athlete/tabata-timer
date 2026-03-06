@@ -1,14 +1,11 @@
 // UI helpers: DOM element caching and rendering logic
-// All functions are pure wrt. state; they take parameters rather than relying on globals.
 
-// helper used by multiple renderers
 export function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 }
 
-// grab references to the nodes we care about once
 export const elements = {
   clock: document.getElementById('clock'),
   phaseBadge: document.getElementById('phaseBadge'),
@@ -22,6 +19,7 @@ export const elements = {
   btnReset: document.getElementById('btnReset'),
   btnSkip: document.getElementById('btnSkip'),
   btnMute: document.getElementById('btnMute'),
+  roundCounter: document.getElementById('roundCounter'),
   inputs: {
     prep: document.getElementById('prep'),
     work: document.getElementById('work'),
@@ -42,7 +40,6 @@ export const elements = {
   }
 };
 
-// some info labels are siblings; populate after DOM ready
 if (elements.labels.work) elements.labels.workInfo = elements.labels.work.nextElementSibling;
 if (elements.labels.rest) elements.labels.restInfo = elements.labels.rest.nextElementSibling;
 if (elements.labels.rounds) elements.labels.roundsInfo = elements.labels.rounds.nextElementSibling;
@@ -63,6 +60,11 @@ export function updateSubline(elementsObj, state) {
     : `Round ${state.currentRound} / ${state.totals.rounds} • Cycle ${state.currentCycle} / ${state.totals.cycles}`;
 }
 
+export function updateRoundCounter(elementsObj, state) {
+  if (!elementsObj.roundCounter) return;
+  elementsObj.roundCounter.textContent = `Round ${state.currentRound} / ${state.totals.rounds}`;
+}
+
 function getIntervalDuration(state, phase) {
   switch (phase) {
     case 'prepare': return state.totals.prep;
@@ -80,13 +82,14 @@ export function updateProgressBars(elementsObj, state) {
     elementsObj.intervalProgress.style.width = `${Math.min(100, Math.max(0, intervalPercent))}%`;
   }
   if (elementsObj.sessionProgress) {
-    const sessionPercent = state.sessionTotalSeconds ? (state.sessionElapsedSeconds / state.sessionTotalSeconds) * 100 : 0;
+    const sessionPercent = state.sessionTotalSeconds
+      ? (state.sessionElapsedSeconds / state.sessionTotalSeconds) * 100
+      : 0;
     elementsObj.sessionProgress.style.width = `${Math.min(100, Math.max(0, sessionPercent))}%`;
   }
 }
 
 export function renderClock(elementsObj, state, currentMode) {
-  // For EMOM mode, display remaining time in the current minute (work+rest = 60s)
   let displayRemaining = state.remaining;
   if (currentMode === 'emom') {
     if (state.phase === 'work') {
@@ -99,15 +102,21 @@ export function renderClock(elementsObj, state, currentMode) {
     elementsObj.clock.textContent = formatTime(displayRemaining);
   }
   updateProgressBars(elementsObj, state);
-  updateSubline(elementsObj, state);
-  // show total remaining workout time in the footer summary
+  if (currentMode !== 'emom') {
+    updateSubline(elementsObj, state);
+  } else {
+    updateRoundCounter(elementsObj, state);
+  }
   if (elementsObj.summary) {
-    const totalLeft = Math.max(0, (state.sessionTotalSeconds || 0) - (state.sessionElapsedSeconds || 0));
-    elementsObj.summary.textContent = (currentMode === 'emom') ? `Total remaining: ${formatTime(totalLeft)}` : '';
+    const totalLeft = Math.max(
+      0,
+      (state.sessionTotalSeconds || 0) - (state.sessionElapsedSeconds || 0)
+    );
+    elementsObj.summary.textContent =
+      currentMode === 'emom' ? `Total remaining: ${formatTime(totalLeft)}` : '';
   }
 }
 
-// update visible labels based on mode; caller should call when mode changes
 import { computeSessionTotal } from './timer.js';
 
 export function renderStats(elementsObj, totals, currentMode) {
@@ -128,13 +137,13 @@ export function renderStats(elementsObj, totals, currentMode) {
 export function updateModeLabels(elementsObj, currentMode) {
   const { work, workInfo, rest, restInfo, rounds, roundsInfo } = elementsObj.labels;
   if (work) {
-    work.textContent = 'Work (sec)';
+    work.textContent = currentMode === 'emom' ? 'Interval (sec)' : 'Work (sec)';
     if (workInfo) workInfo.textContent = 'High-intensity interval';
   }
   if (rest) {
     if (currentMode === 'emom') {
       rest.textContent = 'Rest (auto)';
-      if (restInfo) restInfo.textContent = 'Calculated as 60 - work';
+      if (restInfo) restInfo.textContent = '';
     } else {
       rest.textContent = 'Rest (sec)';
       if (restInfo) restInfo.textContent = 'Recovery interval';
@@ -151,15 +160,13 @@ export function updateModeLabels(elementsObj, currentMode) {
   }
 }
 
-// helpers for adjusting numeric input constraints, appropriate for EMOM vs others
-// helpers for adjusting numeric input constraints, appropriate for EMOM vs others
 export function adjustRoundsConstraints(elementsObj, currentMode) {
   const input = elementsObj.inputs && elementsObj.inputs.rounds;
   if (!input) return;
   if (currentMode === 'emom') {
-    input.setAttribute('min', '10');
-    input.setAttribute('max', '60');
-    if (+input.value < 10) input.value = 10;
+    input.setAttribute('min', '1');
+    input.setAttribute('max', '9999');
+    if (+input.value < 1) input.value = 1;
   } else {
     input.setAttribute('min', '1');
     input.setAttribute('max', '9999');
