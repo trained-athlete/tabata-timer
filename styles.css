@@ -49,6 +49,35 @@ header h1 { margin:0; font-size:20px; }
   padding:12px;
 }
 
+.mode-buttons {
+  display:flex;
+  gap:10px;
+  justify-content:flex-start;
+  padding:0 20px 10px;
+  border-bottom:1px solid white;
+}
+
+.mode-btn {
+  padding:8px 16px;
+  border:1px solid white;
+  background:black;
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+  user-select:none;
+  transition:all 0.2s;
+}
+
+.mode-btn:hover {
+  border-color:white;
+}
+
+.mode-btn.selected {
+  background:white;
+  color:black;
+  border-color:white;
+}
+
 .phase {
   font-size:14px;
   text-transform:uppercase;
@@ -72,7 +101,7 @@ header h1 { margin:0; font-size:20px; }
 .round-counter { display:none; }
 .app.emom .round-counter {
   display:block;
-  color:red;
+  color:#ef4444;
   font-size:24px;
 }
 
@@ -147,6 +176,8 @@ header h1 { margin:0; font-size:20px; }
 }
 
 .toggle input { transform:scale(1.3); }
+
+.hidden { display:none; }
 
 .stats {
   margin-top:10px;

@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test('app loads without error', async ({ page }) => {
-  await page.goto('file://' + process.cwd() + '/index.html');
+  await page.goto('http://localhost:3000/index.html');
 
   // Check that the app element exists
   const appEl = page.locator('.app');

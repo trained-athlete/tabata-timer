@@ -24,10 +24,12 @@ function setMode(mode) {
   document
     .querySelectorAll('.mode-btn')
     .forEach((btn) => {
-      btn.classList.toggle(
-        'selected',
-        btn.getAttribute('data-mode') === mode
-      );
+      const isSelected = btn.getAttribute('data-mode') === mode;
+      if (isSelected) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
     });
   // class used by CSS and some JS
   document

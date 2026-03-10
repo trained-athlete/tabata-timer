@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test('mode buttons are present and clickable', async ({ page }) => {
-  await page.goto('file://' + process.cwd() + '/index.html');
+  await page.goto('http://localhost:3000/index.html');
 
   // Both mode buttons should be present
   const tbtBtn = page.locator('.mode-btn[data-mode="tabata"]');
@@ -21,7 +21,7 @@ test('mode buttons are present and clickable', async ({ page }) => {
 });
 
 test('EMOM button is clickable and changes UI state', async ({ page }) => {
-  await page.goto('file://' + process.cwd() + '/index.html');
+  await page.goto('http://localhost:3000/index.html');
 
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
 
@@ -38,7 +38,7 @@ test('EMOM button is clickable and changes UI state', async ({ page }) => {
 
 // EMOM-specific UI adjustments
 test('EMOM mode UI changes', async ({ page }) => {
-  await page.goto('file://' + process.cwd() + '/index.html');
+  await page.goto('http://localhost:3000/index.html');
 
   // click and wait for the mode to take effect
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
@@ -55,7 +55,7 @@ test('EMOM mode UI changes', async ({ page }) => {
 
 // EMOM timer progression to round 2
 test('EMOM timer progression to round 2', async ({ page }) => {
-  await page.goto('file://' + process.cwd() + '/index.html');
+  await page.goto('http://localhost:3000/index.html');
   await page.locator('.mode-btn[data-mode="emom"]').click();
   await page.locator('#work').fill('1');
   await page.locator('#rounds').fill('2');
