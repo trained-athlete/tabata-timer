@@ -24,7 +24,19 @@ function setMode(mode) {
   document
     .querySelectorAll('.mode-btn')
     .forEach((btn) => {
-      const isSelected = btn.getAttribute('data-mode') === mode;
+      function resetSession() {
+        stopTimer();
+        elements.btnStart.textContent = '▶ Start';  // Add this line
+        const totals = getCurrentTotals();
+        if (timer) timer.reset(totals);
+        // ... rest of the function
+      }      function resetSession() {
+        stopTimer();
+        elements.btnStart.textContent = '▶ Start';  // Add this line
+        const totals = getCurrentTotals();
+        if (timer) timer.reset(totals);
+        // ... rest of the function
+      }      const isSelected = btn.getAttribute('data-mode') === mode;
       if (isSelected) {
         btn.classList.add('selected');
       } else {
@@ -201,6 +213,7 @@ function stopTimer() {
 
 function resetSession() {
   stopTimer();
+  elements.btnStart.textContent = '▶ Start';
   const totals = getCurrentTotals();
   if (timer) timer.reset(totals);
   Object.assign(

@@ -67,4 +67,31 @@ test('EMOM timer progression to round 2', async ({ page }) => {
   await expect(rc).toHaveText(/Round\s*2/);
   await expect(rc).toHaveCSS('color', 'rgb(239, 68, 68)');
 });
+// Button label resets when switching modes while timer is running
+test('Start button label resets to "Start" when switching modes', async ({ page }) => {
+  await page.goto('http://localhost:3000/index.html');
 
+  const btnStart = page.locator('#btnStart');
+  const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
+
+  // Initial state: button should show "Start"
+  await expect(btnStart).toHaveText('▶ Start');
+
+  // Click Start button (TABATA mode)
+  await btnStart.click();
+  
+  // Brief wait for state update
+  await page.waitForTimeout(100);
+
+  // Button should now show "Running"
+  await expect(btnStart).toHaveText('Running');
+
+  // Switch to EMOM mode
+  await emomBtn.click();
+
+  // Brief wait for mode switch and reset
+  await page.waitForTimeout(100);
+
+  // Button should reset back to "▶ Start"
+  await expect(btnStart).toHaveText('▶ Start');
+});
