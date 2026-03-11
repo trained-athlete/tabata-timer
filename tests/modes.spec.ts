@@ -62,11 +62,10 @@ test('EMOM timer progression to round 2', async ({ page }) => {
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
 
-  // Wait for Prepare (10s default) + Round 1 work (1s) + transition buffer
-  await page.waitForTimeout(12000);
+  // Wait for roundCounter to show Round 2 (with timeout of 20s)
   const rc = page.locator('#roundCounter');
   await expect(rc).toBeVisible();
-  await expect(rc).toHaveText(/Round\s*2/);
+  await expect(rc).toHaveText(/Round\s*2/, { timeout: 20000 });
   await expect(rc).toHaveCSS('color', 'rgb(239, 68, 68)');
 });
 // Button label resets when switching modes while timer is running
