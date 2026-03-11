@@ -57,15 +57,19 @@ test('EMOM mode UI changes', async ({ page }) => {
 test('EMOM timer progression to round 2', async ({ page }) => {
   await page.goto('http://localhost:3000/index.html');
   await page.locator('.mode-btn[data-mode="emom"]').click();
-  // Note: prep field is hidden in EMOM mode, so we don't set it
   await page.locator('#work').fill('1');
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
 
-  // Wait for roundCounter to show Round 2 (with timeout of 20s)
+  // Skip the prepare phase to get to Round 1 work
+  await page.locator('#btnSkip').click();
+  
+  // Skip Round 1 work to get to Round 2
+  await page.locator('#btnSkip').click();
+  
   const rc = page.locator('#roundCounter');
   await expect(rc).toBeVisible();
-  await expect(rc).toHaveText(/Round\s*2/, { timeout: 20000 });
+  await expect(rc).toHaveText(/Round\s*2/);
   await expect(rc).toHaveCSS('color', 'rgb(239, 68, 68)');
 });
 // Button label resets when switching modes while timer is running
