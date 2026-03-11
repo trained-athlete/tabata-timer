@@ -57,7 +57,7 @@ test('EMOM mode UI changes', async ({ page }) => {
 test('EMOM timer progression to round 2', async ({ page }) => {
   await page.goto('http://localhost:3000/index.html');
   await page.locator('.mode-btn[data-mode="emom"]').click();
-  await page.locator('#prep').fill('0');  // Skip prepare phase
+  // Note: prep field is hidden in EMOM mode, so we don't set it
   await page.locator('#work').fill('1');
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
