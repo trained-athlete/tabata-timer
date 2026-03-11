@@ -62,8 +62,8 @@ test('EMOM timer progression to round 2', async ({ page }) => {
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
 
-  // Wait for Round 1 (1s) + transition to Round 2
-  await page.waitForTimeout(2500);
+  // Wait for Prepare (10s default) + Round 1 work (1s) + transition buffer
+  await page.waitForTimeout(12000);
   const rc = page.locator('#roundCounter');
   await expect(rc).toBeVisible();
   await expect(rc).toHaveText(/Round\s*2/);
