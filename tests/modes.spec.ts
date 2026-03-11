@@ -57,11 +57,13 @@ test('EMOM mode UI changes', async ({ page }) => {
 test('EMOM timer progression to round 2', async ({ page }) => {
   await page.goto('http://localhost:3000/index.html');
   await page.locator('.mode-btn[data-mode="emom"]').click();
+  await page.locator('#prep').fill('0');  // Skip prepare phase
   await page.locator('#work').fill('1');
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
 
-  await page.waitForTimeout(1500);
+  // Wait for Round 1 (1s) + transition to Round 2
+  await page.waitForTimeout(2500);
   const rc = page.locator('#roundCounter');
   await expect(rc).toBeVisible();
   await expect(rc).toHaveText(/Round\s*2/);
