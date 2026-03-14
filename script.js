@@ -16,7 +16,7 @@ function modeLabel(mode) {
 function setMode(mode) {
   if (!MODES.includes(mode)) mode = 'tabata';
   currentMode = mode;
-  document.title = modeLabel(mode);
+  // document.title = modeLabel(mode);
   const appTitle = document.getElementById('appTitle');
   if (appTitle) appTitle.textContent = modeLabel(mode);
   const appEl = document.querySelector('.app');
