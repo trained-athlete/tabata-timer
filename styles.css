@@ -15,7 +15,7 @@ body {
 .app {
   width:100%;
   max-width:900px;
-  background:black;
+  background:rgba(255, 166, 0, 0.836);
   overflow:hidden;
 }
 
