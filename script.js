@@ -9,7 +9,7 @@ function modeLabel(mode) {
     case 'emom':
       return 'EMOM Timer';
     default:
-      return 'Timer';
+      return 'Tabata Timer';
   }
 }
 
@@ -151,7 +151,7 @@ const TOTALS_BUILDERS = {
   emom: (inputs) => {
     const work = +inputs.work.value || 1;
     return {
-      prep: 0,
+      prep: +inputs.prep.value || 0,   // ← now reads the input!,
       work,
       rest: 0,
       rounds: Math.max(1, +inputs.rounds.value || 1),
