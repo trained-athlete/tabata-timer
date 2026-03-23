@@ -6,97 +6,69 @@ import { test, expect } from '@playwright/test';
  */
 
 test('mode buttons are present and clickable', async ({ page }) => {
-  await page.goto('http://localhost:3000/index.html');
+  await page.goto('/index.html');
 
-  // Both mode buttons should be present
   const tbtBtn = page.locator('.mode-btn[data-mode="tabata"]');
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
 
   await expect(tbtBtn).toBeVisible();
   await expect(emomBtn).toBeVisible();
-
-  // Buttons should be clickable
   await expect(tbtBtn).toBeEnabled();
   await expect(emomBtn).toBeEnabled();
 });
 
 test('EMOM button is clickable and changes UI state', async ({ page }) => {
-  await page.goto('http://localhost:3000/index.html');
+  await page.goto('/index.html');
 
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
-
-  // Click should not throw an error
   await emomBtn.click();
-  
-  // Brief wait for any async updates
   await page.waitForTimeout(100);
 
-  // App should still be responsive (timer display should exist)
   const timer = page.locator('#clock');
   await expect(timer).toBeVisible();
 });
 
-// EMOM-specific UI adjustments
 test('EMOM mode UI changes', async ({ page }) => {
-  await page.goto('http://localhost:3000/index.html');
+  await page.goto('/index.html');
 
-  // click and wait for the mode to take effect
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
   await emomBtn.click();
   await expect(emomBtn).toHaveClass(/selected/);
 
-  // now assert the rest *field* is hidden, not just the input
   const restField = page.locator('.field:has(#rest)');
   await expect(restField).toBeHidden();
 
-  await expect(page.locator('label[for="work"]'))
-    .toHaveText('Interval (sec)');
+  await expect(page.locator('label[for="work"]')).toHaveText('Interval (sec)');
 });
 
-// EMOM timer progression to round 2
 test('EMOM timer progression to round 2', async ({ page }) => {
-  await page.goto('http://localhost:3000/index.html');
+  await page.goto('/index.html');
   await page.locator('.mode-btn[data-mode="emom"]').click();
   await page.locator('#work').fill('1');
   await page.locator('#rounds').fill('2');
   await page.locator('#btnStart').click();
 
-  // Skip the prepare phase to get to Round 1 work
   await page.locator('#btnSkip').click();
-  
-  // Skip Round 1 work to get to Round 2
   await page.locator('#btnSkip').click();
-  
+
   const rc = page.locator('#roundCounter');
   await expect(rc).toBeVisible();
   await expect(rc).toHaveText(/Round\s*2/);
   await expect(rc).toHaveCSS('color', 'rgb(239, 68, 68)');
 });
-// Button label resets when switching modes while timer is running
+
 test('Start button label resets to "Start" when switching modes', async ({ page }) => {
-  await page.goto('http://localhost:3000/index.html');
+  await page.goto('/index.html');
 
   const btnStart = page.locator('#btnStart');
   const emomBtn = page.locator('.mode-btn[data-mode="emom"]');
 
-  // Initial state: button should show "Start"
-  await expect(btnStart).toHaveText('▶ Start');
-
-  // Click Start button (TABATA mode)
+  await expect(btnStart).toHaveText('Start');
   await btnStart.click();
-  
-  // Brief wait for state update
   await page.waitForTimeout(100);
-
-  // Button should now show "Running"
   await expect(btnStart).toHaveText('Running');
 
-  // Switch to EMOM mode
   await emomBtn.click();
-
-  // Brief wait for mode switch and reset
   await page.waitForTimeout(100);
-
-  // Button should reset back to "▶ Start"
-  await expect(btnStart).toHaveText('▶ Start');
+  await expect(btnStart).toHaveText('Start');
 });

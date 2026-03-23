@@ -105,9 +105,7 @@ function loadSettings() {
     elements.inputs.autoNext.checked = !!settings.autoNext;
     elements.inputs.sessionBeep.checked = !!settings.sessionBeep;
     Sound.enabled = settings.soundEnabled !== false;
-    elements.btnMute.textContent = Sound.enabled
-      ? 'đź” Sound: On'
-      : 'đź”‡ Sound: Off';
+    elements.btnMute.textContent = Sound.enabled ? 'Sound: On' : 'Sound: Off';
     if (settings.mode) {
       setMode(settings.mode);
     }
@@ -188,7 +186,7 @@ function pauseTimer() {
   if (timer) timer.pause();
   state.running = false;
   Sound.releaseWakeLock();
-  elements.btnStart.textContent = '▶ Start';
+  elements.btnStart.textContent = 'Start';
 }
 
 function stopTimer() {
@@ -199,7 +197,7 @@ function stopTimer() {
 
 function resetSession() {
   stopTimer();
-  elements.btnStart.textContent = '▶ Start';
+  elements.btnStart.textContent = 'Start';
   const totals = getCurrentTotals();
   if (timer) timer.reset(totals);
   Object.assign(
@@ -233,9 +231,7 @@ elements.btnReset.addEventListener('click', () => {
 elements.btnSkip.addEventListener('click', skipInterval);
 elements.btnMute.addEventListener('click', () => {
   Sound.enabled = !Sound.enabled;
-  elements.btnMute.textContent = Sound.enabled
-    ? 'đź” Sound: On'
-    : 'đź”‡ Sound: Off';
+  elements.btnMute.textContent = Sound.enabled ? 'Sound: On' : 'Sound: Off';
   saveSettings();
 });
 

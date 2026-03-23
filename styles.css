@@ -1,4 +1,4 @@
-/* brutalist‑minimal theme */
+/* brutalist-minimal theme */
 * { box-sizing:border-box; }
 
 body {
@@ -203,7 +203,7 @@ footer {
   color:white;
 }
 
-/* mobile tweaks kept from original – unchanged */
+/* mobile tweaks kept from original - unchanged */
 html, body { -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:rgba(0,0,0,0); }
 .app { padding-bottom:env(safe-area-inset-bottom,12px); }
 @media (max-width:420px) {

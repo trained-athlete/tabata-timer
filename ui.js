@@ -1,5 +1,8 @@
 // UI helpers: DOM element caching and rendering logic
 
+import { PHASE_LABELS } from './constants.js';
+import { computeSessionTotal } from './timer.js';
+
 export function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
@@ -44,9 +47,7 @@ if (elements.labels.work) elements.labels.workInfo = elements.labels.work.nextEl
 if (elements.labels.rest) elements.labels.restInfo = elements.labels.rest.nextElementSibling;
 if (elements.labels.rounds) elements.labels.roundsInfo = elements.labels.rounds.nextElementSibling;
 
-import { PHASE_LABELS } from './constants.js';
-
-export function setPhase(elementsObj, phase, totals = {}) {
+export function setPhase(elementsObj, phase) {
   const el = elementsObj.phaseBadge;
   if (!el) return;
   el.className = 'phase ' + (phase === 'done' ? 'done' : phase);
@@ -57,7 +58,7 @@ export function updateSubline(elementsObj, state) {
   if (!elementsObj.subline) return;
   elementsObj.subline.textContent = (state.phase === 'longrest' || state.phase === 'done')
     ? `Cycle ${state.currentCycle} / ${state.totals.cycles}`
-    : `Round ${state.currentRound} / ${state.totals.rounds} • Cycle ${state.currentCycle} / ${state.totals.cycles}`;
+    : `Round ${state.currentRound} / ${state.totals.rounds} - Cycle ${state.currentCycle} / ${state.totals.cycles}`;
 }
 
 export function updateRoundCounter(elementsObj, state) {
@@ -117,8 +118,6 @@ export function renderClock(elementsObj, state, currentMode) {
   }
 }
 
-import { computeSessionTotal } from './timer.js';
-
 export function renderStats(elementsObj, totals, currentMode) {
   const total = computeSessionTotal(totals);
   const parts = [`Total session time: ${formatTime(total)}`];
@@ -131,7 +130,7 @@ export function renderStats(elementsObj, totals, currentMode) {
     parts.push(`Rounds: ${totals.rounds}`);
     parts.push(`Cycles: ${totals.cycles}`);
   }
-  if (elementsObj.stats) elementsObj.stats.textContent = parts.join(' • ');
+  if (elementsObj.stats) elementsObj.stats.textContent = parts.join(' - ');
 }
 
 export function updateModeLabels(elementsObj, currentMode) {
@@ -160,16 +159,10 @@ export function updateModeLabels(elementsObj, currentMode) {
   }
 }
 
-export function adjustRoundsConstraints(elementsObj, currentMode) {
+export function adjustRoundsConstraints(elementsObj) {
   const input = elementsObj.inputs && elementsObj.inputs.rounds;
   if (!input) return;
-  if (currentMode === 'emom') {
-    input.setAttribute('min', '1');
-    input.setAttribute('max', '9999');
-    if (+input.value < 1) input.value = 1;
-  } else {
-    input.setAttribute('min', '1');
-    input.setAttribute('max', '9999');
-    if (+input.value < 1) input.value = 1;
-  }
+  input.setAttribute('min', '1');
+  input.setAttribute('max', '9999');
+  if (+input.value < 1) input.value = 1;
 }

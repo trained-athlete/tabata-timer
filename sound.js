@@ -113,8 +113,8 @@ const Sound = {
   _expose() { if (typeof window !== 'undefined') window.Sound = this; },
 
   warning() {
-    // play three identical tones; each lasts 0.25 s and they are spaced
-    // 500 ms apart so they don’t overlap
+    // play three identical tones; each lasts 0.25s and they are spaced
+    // 500ms apart so they do not overlap
     this.scheduleBeep({ freq: 770, duration: 0.25, type: 'sine', volume: 0.1 });
     const ctx = this.audioCtx;
     if (ctx) {
