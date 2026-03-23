@@ -1,6 +1,18 @@
 // ===== Constants =====
-import { LS_KEY, PHASE_LABELS, MODES, SETTING_KEYS } from './constants.js';
+import { LS_KEY, MODES, SETTING_KEYS } from './constants.js';
+import { TimerController } from './timer.js';
+import { Sound } from './sound.js';
+import {
+  elements,
+  renderStats,
+  setPhase,
+  renderClock,
+  updateModeLabels,
+  adjustRoundsConstraints
+} from './ui.js';
+
 let currentMode = 'tabata';
+let timer = null;
 
 function modeLabel(mode) {
   switch (mode) {
@@ -12,78 +24,6 @@ function modeLabel(mode) {
       return 'Tabata Timer';
   }
 }
-
-function setMode(mode) {
-  if (!MODES.includes(mode)) mode = 'tabata';
-  currentMode = mode;
-  document.title = modeLabel(mode);
-  const appTitle = document.getElementById('appTitle');
-  if (appTitle) appTitle.textContent = modeLabel(mode);
-  const appEl = document.querySelector('.app');
-  if (appEl) appEl.setAttribute('aria-label', modeLabel(mode));
-  document
-    .querySelectorAll('.mode-btn')
-    .forEach((btn) => {
-      function resetSession() {
-        stopTimer();
-        elements.btnStart.textContent = '▶ Start';  // Add this line
-        const totals = getCurrentTotals();
-        if (timer) timer.reset(totals);
-        // ... rest of the function
-      }      function resetSession() {
-        stopTimer();
-        elements.btnStart.textContent = '▶ Start';  // Add this line
-        const totals = getCurrentTotals();
-        if (timer) timer.reset(totals);
-        // ... rest of the function
-      }      const isSelected = btn.getAttribute('data-mode') === mode;
-      if (isSelected) {
-        btn.classList.add('selected');
-      } else {
-        btn.classList.remove('selected');
-      }
-    });
-  // class used by CSS and some JS
-  document
-    .querySelector('.app')
-    .classList.toggle('emom', mode === 'emom');
-  updateSettingsVisibility();
-  updateModeLabels(elements, mode);
-  adjustRoundsConstraints(elements, mode);
-  resetSession();
-}
-
-function updateSettingsVisibility() {
-  document.querySelectorAll('.field[data-modes]').forEach((el) => {
-    const modes = el.getAttribute('data-modes').split(/\s+/);
-    if (modes.includes(currentMode)) {
-      el.classList.remove('hidden');
-    } else {
-      el.classList.add('hidden');
-    }
-  });
-}
-
-// Timer controller (refactored to separate file)
-import { TimerController, computeSessionTotal } from './timer.js';
-import { Sound } from './sound.js';
-import {
-  elements,
-  formatTime,
-  renderStats,
-  setPhase,
-  renderClock,
-  updateModeLabels,
-  adjustRoundsConstraints
-} from './ui.js';
-
-function resumeOnActivation() {
-  Sound.ensureUnlocked();
-}
-window.addEventListener('focus', resumeOnActivation);
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) resumeOnActivation();
-});
 
 // ===== State =====
 const state = {
@@ -104,10 +44,57 @@ const state = {
   sessionElapsedSeconds: 0
 };
 
+function updateSettingsVisibility() {
+  document.querySelectorAll('.field[data-modes]').forEach((el) => {
+    const modes = el.getAttribute('data-modes').split(/\s+/);
+    if (modes.includes(currentMode)) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
+
+function setMode(mode) {
+  if (!MODES.includes(mode)) mode = 'tabata';
+  currentMode = mode;
+
+  document.title = modeLabel(mode);
+
+  const appTitle = document.getElementById('appTitle');
+  if (appTitle) appTitle.textContent = modeLabel(mode);
+
+  const appEl = document.querySelector('.app');
+  if (appEl) {
+    appEl.setAttribute('aria-label', modeLabel(mode));
+    appEl.classList.toggle('emom', mode === 'emom');
+  }
+
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    const isSelected = btn.getAttribute('data-mode') === mode;
+    btn.classList.toggle('selected', isSelected);
+  });
+
+  updateSettingsVisibility();
+  updateModeLabels(elements, mode);
+  adjustRoundsConstraints(elements, mode);
+  resetSession();
+}
+
+function resumeOnActivation() {
+  Sound.ensureUnlocked();
+}
+
+window.addEventListener('focus', resumeOnActivation);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) resumeOnActivation();
+});
+
 // ===== Persistence =====
 function loadSettings() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) return;
+
   try {
     const settings = JSON.parse(raw);
     SETTING_KEYS.forEach((key) => {
@@ -119,8 +106,8 @@ function loadSettings() {
     elements.inputs.sessionBeep.checked = !!settings.sessionBeep;
     Sound.enabled = settings.soundEnabled !== false;
     elements.btnMute.textContent = Sound.enabled
-      ? '🔈 Sound: On'
-      : '🔇 Sound: Off';
+      ? 'đź” Sound: On'
+      : 'đź”‡ Sound: Off';
     if (settings.mode) {
       setMode(settings.mode);
     }
@@ -151,7 +138,7 @@ const TOTALS_BUILDERS = {
   emom: (inputs) => {
     const work = +inputs.work.value || 1;
     return {
-      prep: +inputs.prep.value || 0,   // ← now reads the input!,
+      prep: +inputs.prep.value || 0,
       work,
       rest: 0,
       rounds: Math.max(1, +inputs.rounds.value || 1),
@@ -162,30 +149,29 @@ const TOTALS_BUILDERS = {
 };
 
 function getCurrentTotals() {
-  const builder =
-    TOTALS_BUILDERS[currentMode] || TOTALS_BUILDERS.tabata;
+  const builder = TOTALS_BUILDERS[currentMode] || TOTALS_BUILDERS.tabata;
   return builder(elements.inputs);
 }
 
 function playPhaseSound() {
   if (!elements.inputs.sessionBeep.checked) return;
+
   if (currentMode === 'emom') {
     if (state.phase === 'work') Sound.shortBeep();
     else if (state.phase === 'done') Sound.bell();
-  } else {
-    if (state.phase === 'work') Sound.bell();
-    else if (state.phase === 'rest') Sound.tripleCountdown();
-    else if (state.phase === 'longrest') Sound.beep(520, 0.18);
-    else if (state.phase === 'done') Sound.bell();
+    return;
   }
+
+  if (state.phase === 'work') Sound.bell();
+  else if (state.phase === 'rest') Sound.tripleCountdown();
+  else if (state.phase === 'longrest') Sound.beep(520, 0.18);
+  else if (state.phase === 'done') Sound.bell();
 }
 
 function playWarningSound() {
   if (!elements.inputs.sessionBeep.checked) return;
   Sound.warning();
 }
-
-let timer = null;
 
 function startTimer() {
   if (state.running) return;
@@ -232,8 +218,8 @@ function skipInterval() {
 // ===== Event Bindings =====
 document.querySelectorAll('.mode-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    const m = btn.getAttribute('data-mode');
-    setMode(m);
+    const mode = btn.getAttribute('data-mode');
+    setMode(mode);
     saveSettings();
   });
 });
@@ -248,8 +234,8 @@ elements.btnSkip.addEventListener('click', skipInterval);
 elements.btnMute.addEventListener('click', () => {
   Sound.enabled = !Sound.enabled;
   elements.btnMute.textContent = Sound.enabled
-    ? '🔈 Sound: On'
-    : '🔇 Sound: Off';
+    ? 'đź” Sound: On'
+    : 'đź”‡ Sound: Off';
   saveSettings();
 });
 
@@ -285,34 +271,25 @@ function unlockAudioOnFirstGesture() {
     window.removeEventListener('touchstart', unlock);
     window.removeEventListener('mousedown', unlock);
   }
+
   window.addEventListener('touchstart', unlock, { passive: true });
   window.addEventListener('mousedown', unlock, { passive: true });
-}
-unlockAudioOnFirstGesture();
-
-loadSettings();
-if (!MODES.includes(currentMode)) {
-  setMode('tabata');
-} else {
-  updateSettingsVisibility();
-  updateModeLabels(elements, currentMode);
-  adjustRoundsConstraints(elements, currentMode);
 }
 
 function createTimer() {
   return new TimerController(getCurrentTotals(), {
     autoNext: elements.inputs.autoNext.checked,
-    onTick: (s) => {
-      Object.assign(state, s);
+    onTick: (nextState) => {
+      Object.assign(state, nextState);
       renderClock(elements, state, currentMode);
     },
-    onPhase: (s) => {
-      Object.assign(state, s);
+    onPhase: (nextState) => {
+      Object.assign(state, nextState);
       playPhaseSound();
-      setPhase(elements, s.phase);
+      setPhase(elements, nextState.phase);
       renderClock(elements, state, currentMode);
     },
-    onWarning: (s) => {
+    onWarning: () => {
       playWarningSound();
     },
     onDone: () => {
@@ -320,6 +297,17 @@ function createTimer() {
       renderClock(elements, state, currentMode);
     }
   });
+}
+
+unlockAudioOnFirstGesture();
+loadSettings();
+
+if (!MODES.includes(currentMode)) {
+  setMode('tabata');
+} else {
+  updateSettingsVisibility();
+  updateModeLabels(elements, currentMode);
+  adjustRoundsConstraints(elements, currentMode);
 }
 
 timer = createTimer();
