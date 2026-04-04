@@ -1,14 +1,16 @@
 // TimerController: pure timing/state logic with callbacks
 export class TimerController {
-  constructor(totals, { autoNext = true, onTick = () => {}, onPhase = () => {}, onDone = () => {} } = {}) {
+  constructor(totals, { autoNext = true, onTick = () => {}, onPhase = () => {}, onDone = () => {}, onWarning = () => {} } = {}) {
     this.totals = { ...totals };
     this.autoNext = !!autoNext;
     this.onTick = onTick;
     this.onPhase = onPhase;
     this.onDone = onDone;
+    this.onWarning = onWarning;
 
     this.timerId = null;
     this.running = false;
+    this.warningTriggered = false;
     this.reset(this.totals);
   }
 
@@ -44,6 +46,7 @@ export class TimerController {
     this.remaining = this.totals.prep;
     this.sessionTotalSeconds = this.computeSessionTotal(this.totals);
     this.sessionElapsedSeconds = 0;
+    this.warningTriggered = false;
     this.onPhase(this.getState());
     this.onTick(this.getState());
   }
@@ -77,6 +80,13 @@ export class TimerController {
     if (!this.running) return;
     this.remaining = Math.max(0, this.remaining - 1);
     this.sessionElapsedSeconds = Math.min(this.sessionTotalSeconds, this.sessionElapsedSeconds + 1);
+    
+    // Trigger warning sound 3 seconds before work or rest begins
+    if ((this.phase === 'work' || this.phase === 'rest') && this.remaining === 3 && !this.warningTriggered) {
+      this.warningTriggered = true;
+      this.onWarning(this.getState());
+    }
+    
     this.onTick(this.getState());
 
     if (this.remaining <= 0 && this.phase !== 'done' && this.autoNext) {
@@ -104,6 +114,7 @@ export class TimerController {
       this.remaining = totals.work;
     }
 
+    this.warningTriggered = false;
     this.onPhase(this.getState());
     this.onTick(this.getState());
     if (this.phase === 'done') this.onDone();

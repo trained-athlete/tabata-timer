@@ -73,6 +73,11 @@ const Sound = {
   bell() {
     this.beep(440, 0.25, 'triangle', 0.12);
     setTimeout(() => this.beep(880, 0.25, 'sine', 0.08), 50);
+  },
+
+  warning() {
+    this.beep(770, 0.1, 'sine', 0.1);
+    setTimeout(() => this.beep(770, 0.1, 'sine', 0.1), 150);
   }
 };
 
@@ -219,7 +224,12 @@ function playPhaseSound() {
   else if (state.phase === 'rest') Sound.tripleCountdown();
   else if (state.phase === 'longrest') Sound.beep(520, 0.18);
   else if (state.phase === 'done') Sound.bell();
-} 
+}
+
+function playWarningSound() {
+  if (!elements.inputs.sessionBeep.checked) return;
+  Sound.warning();
+}
 
 let timer = null;
 
@@ -321,6 +331,7 @@ function createTimer() {
     autoNext: elements.inputs.autoNext.checked,
     onTick: s => { Object.assign(state, s); renderClock(); },
     onPhase: s => { Object.assign(state, s); playPhaseSound(); setPhase(s.phase); renderClock(); },
+    onWarning: s => { playWarningSound(); },
     onDone: () => { setPhase('done'); renderClock(); }
   });
 }
