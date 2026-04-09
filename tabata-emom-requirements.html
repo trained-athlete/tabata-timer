@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TABATA & EMOM — Requirements</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #fff;
+    color: #1a1a1a;
+    padding: 2rem;
+    line-height: 1.6;
+  }
+  .doc { max-width: 860px; margin: 0 auto; padding: 2rem 0; }
+  h1 { font-size: 28px; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 14px; color: #888; margin-bottom: 2rem; }
+  .section { margin-bottom: 2rem; }
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #999;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 6px; margin-bottom: 1rem;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; }
+  .badge {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 5px; letter-spacing: 0.04em;
+  }
+  .badge-tabata { background: #EEEDFE; color: #3C3489; }
+  .badge-emom   { background: #E1F5EE; color: #085041; }
+  .badge-shared { background: #F1EFE8; color: #444441; }
+  .badge-ui     { background: #E6F1FB; color: #0C447C; }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .req-list { list-style: none; }
+  .req-list li {
+    font-size: 13px; color: #555;
+    padding: 3px 0 3px 14px;
+    position: relative; line-height: 1.6;
+  }
+  .req-list li::before { content: "–"; position: absolute; left: 0; color: #ccc; }
+  .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.5rem; }
+  .tag {
+    font-size: 12px; padding: 2px 10px;
+    border: 1px solid #e5e5e5;
+    border-radius: 99px; color: #888;
+  }
+  @media (max-width: 600px) {
+    .two-col, .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>JavaScript web app — requirements</h1>
+  <p class="subtitle">TABATA &amp; EMOM timer · Reference: timer.crosshero.com</p>
+
+  <!-- 1. Workout modes -->
+  <div class="section">
+    <div class="section-title">1 · Workout modes</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-tabata">TABATA</span>
+          <span class="card-title">Tabata timer</span>
+        </div>
+        <ul class="req-list">
+          <li>Configurable <strong>work</strong> interval (default 20 s)</li>
+          <li>Configurable <strong>rest</strong> interval (default 10 s); can be set to 0</li>
+          <li>Configurable <strong>number of rounds</strong> (default 8)</li>
+          <li>Multiple independent Tabata sets in sequence</li>
+          <li>Clearly distinguish work vs. rest phase visually</li>
+          <li>"Last round" alert before final set</li>
+          <li>Mid-workout audio signal option</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="badge badge-emom">EMOM</span>
+          <span class="card-title">EMOM timer</span>
+        </div>
+        <ul class="req-list">
+          <li>Configurable <strong>interval duration</strong> (default 60 s)</li>
+          <li>Configurable <strong>total number of rounds</strong></li>
+          <li>Interval can be set to values other than 60 s (e.g. every 2 min)</li>
+          <li>Audio/visual cue at the start of each new minute/interval</li>
+          <li>"Last round" alert before final interval</li>
+          <li>Round counter shown prominently during workout</li>
+          <li>Total elapsed time displayed alongside interval countdown</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Shared controls -->
+  <div class="section">
+    <div class="section-title">2 · Timer controls (shared)</div>
+    <div class="three-col">
+      <div class="card">
+        <div class="card-header"><span class="badge badge-shared">Controls</span></div>
+        <ul class="req-list">
+          <li>Start / Pause / Resume</li>
+          <li>Stop &amp; reset to initial state</li>
+          <li>Skip current interval</li>
+          <li>Countdown before timer starts (e.g. 3-second lead-in)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="badge badge-shared">Display</span></div>
+        <ul class="req-list">
+          <li>Large, high-contrast time digits</li>
+          <li>Current round / total rounds indicator</li>
+          <li>Current phase label (Work / Rest)</li>
+          <li>Total workout time remaining or elapsed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="badge badge-shared">Audio</span></div>
+        <ul class="req-list">
+          <li>Beep on interval start/end</li>
+          <li>Voice audio option ("3, 2, 1, Go!")</li>
+          <li>Distinct sounds for work vs. rest transitions</li>
+          <li>Toggle audio on / off</li>
+          <li>Last-round warning sound</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Configuration UI -->
+  <div class="section">
+    <div class="section-title">3 · Configuration UI</div>
+    <div class="card">
+      <ul class="req-list" style="columns:2;gap:2rem;">
+        <li>Mode selector: Tabata / EMOM (+ AMRAP, For Time as future tabs)</li>
+        <li>Numeric inputs or scroll-picker for time values (min : sec)</li>
+        <li>Input validation — prevent zero total duration</li>
+        <li>Preset / saved workout configurations</li>
+        <li>Ability to add multiple sets of the same type in sequence</li>
+        <li>Reset all settings to defaults</li>
+        <li>Settings persist across page reloads (localStorage)</li>
+        <li>Summary preview: total workout duration shown before start</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4. UI & layout -->
+  <div class="section">
+    <div class="section-title">4 · UI &amp; layout</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="badge badge-ui">Responsiveness</span></div>
+        <ul class="req-list">
+          <li>Mobile-first responsive layout</li>
+          <li>Landscape mode — large timer fills screen width</li>
+          <li>Readable from 3+ metres (gym wall scenario)</li>
+          <li>Dark / light mode toggle</li>
+          <li>Full-screen mode support</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="badge badge-ui">Visuals</span></div>
+        <ul class="req-list">
+          <li>Color change between work and rest phases</li>
+          <li>Progress bar or ring per interval</li>
+          <li>Smooth countdown animation</li>
+          <li>Phase label clearly visible at a glance</li>
+          <li>Motivational label or phase name customisation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Technical -->
+  <div class="section">
+    <div class="section-title">5 · Technical requirements</div>
+    <div class="card">
+      <ul class="req-list" style="columns:2;gap:2rem;">
+        <li>Pure JavaScript — no server required; fully client-side</li>
+        <li>Accurate timing via setInterval + drift correction, or AudioContext clock</li>
+        <li>Web Audio API for beep generation (no external audio files needed)</li>
+        <li>Runs with screen locked / app in background (where browser allows)</li>
+        <li>Wake Lock API to prevent screen sleep during workout</li>
+        <li>localStorage for persisting settings and workout history</li>
+        <li>PWA-ready: manifest + service worker for offline use</li>
+        <li>No external dependencies required for core timer logic</li>
+        <li>Works on Chrome, Firefox, Safari, Edge (latest 2 versions)</li>
+        <li>Keyboard shortcuts: Space = start/pause, R = reset, S = skip</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6. History -->
+  <div class="section">
+    <div class="section-title">6 · Workout log &amp; history</div>
+    <div class="card">
+      <ul class="req-list" style="columns:2;gap:2rem;">
+        <li>Auto-save completed workouts with date &amp; configuration</li>
+        <li>List view of past workouts</li>
+        <li>Replay / re-run a past workout from history</li>
+        <li>Clear individual entries or full history</li>
+        <li>Display total rounds completed and duration</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 7. Nice to have -->
+  <div class="section">
+    <div class="section-title">7 · Nice-to-have / future scope</div>
+    <div class="tag-row">
+      <span class="tag">AMRAP timer</span>
+      <span class="tag">For Time timer</span>
+      <span class="tag">Custom multi-block sequences</span>
+      <span class="tag">Share workout via URL</span>
+      <span class="tag">Export workout as PDF/image</span>
+      <span class="tag">Apple Watch / wearable support</span>
+      <span class="tag">Round counter tap button (AMRAP)</span>
+      <span class="tag">Custom beep sounds upload</span>
+      <span class="tag">Workout generator / randomiser</span>
+      <span class="tag">Background music integration</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

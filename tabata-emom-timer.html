@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WOD Timer — TABATA &amp; EMOM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0ede8;
+    --muted: #5a5755;
+    --dimmed: #2e2c2a;
+
+    --work-color: #c8f542;
+    --work-glow: rgba(200,245,66,0.15);
+    --work-dim: rgba(200,245,66,0.08);
+
+    --rest-color: #f5424e;
+    --rest-glow: rgba(245,66,78,0.15);
+    --rest-dim: rgba(245,66,78,0.08);
+
+    --emom-color: #42b0f5;
+    --emom-glow: rgba(66,176,245,0.15);
+    --emom-dim: rgba(66,176,245,0.08);
+
+    --ready-color: #f5a623;
+    --ready-glow: rgba(245,166,35,0.15);
+
+    --accent: var(--work-color);
+    --accent-glow: var(--work-glow);
+    --accent-dim: var(--work-dim);
+
+    --ring-size: 300px;
+    --ring-stroke: 6;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Layout ── */
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    opacity: 0.9;
+  }
+
+  .logo span { color: var(--work-color); }
+
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* ── Mode tabs ── */
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .tab-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 6px 16px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* ── Main content ── */
+  main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── Config panel ── */
+  .config-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.75rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.1em;
+    margin-bottom: -0.5rem;
+  }
+
+  .panel-title.tabata { color: var(--work-color); }
+  .panel-title.emom { color: var(--emom-color); }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .time-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .time-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .time-cell-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .time-cell-input {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    width: 100%;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .time-cell-input::-webkit-outer-spin-button,
+  .time-cell-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .number-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .num-btn {
+    width: 44px; height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+
+  .num-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+  .num-value {
+    flex: 1;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .num-value::-webkit-outer-spin-button,
+  .num-value::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.25rem 0;
+  }
+
+  .workout-preview {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .preview-label { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; }
+  .preview-value { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.05em; }
+
+  .start-btn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--work-color);
+    color: #0a0a0a;
+  }
+
+  .start-btn.emom-start { background: var(--emom-color); }
+  .start-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .start-btn:active { transform: translateY(0); filter: brightness(0.95); }
+
+  .audio-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--dimmed);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch.on { background: var(--work-color); }
+  .toggle-switch.on.emom-toggle { background: var(--emom-color); }
+
+  .toggle-knob {
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+  }
+
+  .toggle-switch.on .toggle-knob { transform: translateX(16px); }
+
+  /* ── Timer display ── */
+  .timer-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 3rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.5s ease;
+  }
+
+  .timer-bg-glow {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+
+  .timer-bg-glow.visible { opacity: 1; }
+
+  .phase-banner {
+    position: absolute;
+    top: 2rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    text-transform: uppercase;
+    transition: color 0.4s;
+  }
+
+  .phase-banner.work { color: var(--work-color); }
+  .phase-banner.rest { color: var(--rest-color); }
+  .phase-banner.emom-phase { color: var(--emom-color); }
+  .phase-banner.ready { color: var(--ready-color); }
+
+  /* Ring */
+  .ring-container {
+    position: relative;
+    width: var(--ring-size);
+    height: var(--ring-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ring-svg {
+    position: absolute;
+    inset: 0;
+    transform: rotate(-90deg);
+  }
+
+  .ring-track {
+    fill: none;
+    stroke: var(--dimmed);
+    stroke-width: var(--ring-stroke);
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: var(--work-color);
+    stroke-width: var(--ring-stroke);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.25s linear, stroke 0.4s ease;
+  }
+
+  .ring-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    z-index: 1;
+  }
+
+  .time-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 96px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    transition: color 0.4s;
+    color: var(--text);
+  }
+
+  .time-display.work { color: var(--work-color); }
+  .time-display.rest { color: var(--rest-color); }
+  .time-display.emom-phase { color: var(--emom-color); }
+  .time-display.ready { color: var(--ready-color); }
+
+  .round-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .ctrl-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .ctrl-btn:hover { border-color: rgba(255,255,255,0.15); color: var(--text); }
+  .ctrl-btn:active { transform: scale(0.94); }
+
+  .ctrl-btn.sm { width: 48px; height: 48px; }
+  .ctrl-btn.lg {
+    width: 72px; height: 72px;
+    background: var(--work-color);
+    border-color: var(--work-color);
+    color: #0a0a0a;
+  }
+
+  .ctrl-btn.lg.emom-btn { background: var(--emom-color); border-color: var(--emom-color); }
+  .ctrl-btn.lg:hover { filter: brightness(1.1); }
+
+  .ctrl-btn svg { pointer-events: none; }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .stat-divider { width: 1px; height: 30px; background: var(--border); }
+
+  /* Idle state */
+  .idle-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .idle-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 120px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--dimmed);
+  }
+
+  .idle-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+
+  /* Footer */
+  footer {
+    padding: 1rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .kbd {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .shortcuts {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.06em;
+  }
+
+  .shortcut-item { display: flex; align-items: center; gap: 5px; }
+
+  /* ── History drawer ── */
+  .history-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .history-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+  /* Notification toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 100;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── History modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: min(520px, calc(100vw - 2rem));
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    padding: 1.5rem 1.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.1em;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body {
+    overflow-y: auto;
+    padding: 1rem 1.75rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .history-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .history-item:hover { border-color: rgba(255,255,255,0.15); }
+
+  .history-info { display: flex; flex-direction: column; gap: 3px; }
+
+  .history-mode {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+
+  .history-mode.tabata { color: var(--work-color); }
+  .history-mode.emom { color: var(--emom-color); }
+
+  .history-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .history-load {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    transition: all 0.15s;
+  }
+
+  .history-item:hover .history-load { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+  .empty-history {
+    text-align: center;
+    padding: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 720px) {
+    main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .config-panel { border-right: none; border-bottom: 1px solid var(--border); padding: 1.25rem; gap: 1rem; }
+    :root { --ring-size: 240px; }
+    .time-display { font-size: 72px; }
+    .idle-big { font-size: 80px; }
+    header { padding: 1rem; }
+    .shortcuts { display: none; }
+  }
+
+  /* ── Animations ── */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.015); }
+    100% { transform: scale(1); }
+  }
+
+  .ring-container.beat { animation: pulse-ring 0.2s ease-out; }
+
+  @keyframes flash-in {
+    0% { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .phase-change { animation: flash-in 0.25s ease-out; }
+
+  @keyframes countdown-pop {
+    0% { transform: scale(1.2); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .pop { animation: countdown-pop 0.2s ease-out; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header>
+    <div class="logo">WOD<span>•</span>TIMER</div>
+    <div class="mode-tabs">
+      <button class="tab-btn active" onclick="setMode('tabata')" id="tab-tabata">TABATA</button>
+      <button class="tab-btn" onclick="setMode('emom')" id="tab-emom">EMOM</button>
+    </div>
+    <div class="header-actions">
+      <button class="history-btn" onclick="openHistory()">HISTORY</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main>
+    <!-- Config panel -->
+    <div class="config-panel" id="config-panel">
+
+      <!-- TABATA config -->
+      <div id="tabata-config">
+        <div class="panel-title tabata">TABATA</div>
+
+        <div class="field-group">
+          <div class="field-label">Work interval</div>
+          <div class="time-input-row">
+            <div class="time-cell">
+              <div class="time-cell-label">Min</div>
+              <input class="time-cell-input" type="number" id="t-work-min" value="0" min="0" max="59" oninput="updatePreview()">
+            </div>
+            <div class="time-cell">
+              <div class="time-cell-label">Sec</div>
+              <input class="time-cell-input" type="number" id="t-work-sec" value="20" min="0" max="59" oninput="updatePreview()">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Rest interval</div>
+          <div class="time-input-row">
+            <div class="time-cell">
+              <div class="time-cell-label">Min</div>
+              <input class="time-cell-input" type="number" id="t-rest-min" value="0" min="0" max="59" oninput="updatePreview()">
+            </div>
+            <div class="time-cell">
+              <div class="time-cell-label">Sec</div>
+              <input class="time-cell-input" type="number" id="t-rest-sec" value="10" min="0" max="59" oninput="updatePreview()">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Rounds</div>
+          <div class="number-input-row">
+            <button class="num-btn" onclick="adj('t-rounds', -1)">−</button>
+            <input class="num-value" type="number" id="t-rounds" value="8" min="1" max="99" oninput="updatePreview()">
+            <button class="num-btn" onclick="adj('t-rounds', 1)">+</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="workout-preview" id="t-preview">
+          <div class="preview-row">
+            <span class="preview-label">Total duration</span>
+            <span class="preview-value" id="t-total-dur">—</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Work time</span>
+            <span class="preview-value" id="t-total-work">—</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Rest time</span>
+            <span class="preview-value" id="t-total-rest">—</span>
+          </div>
+        </div>
+
+        <div class="audio-toggle" onclick="toggleAudio('tabata')">
+          <div class="toggle-switch" id="t-audio-sw"><div class="toggle-knob"></div></div>
+          <span>Audio cues</span>
+        </div>
+
+        <button class="start-btn" onclick="startWorkout('tabata')">START TABATA</button>
+      </div>
+
+      <!-- EMOM config -->
+      <div id="emom-config" style="display:none; display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="panel-title emom">EMOM</div>
+
+        <div class="field-group">
+          <div class="field-label">Interval duration</div>
+          <div class="time-input-row">
+            <div class="time-cell">
+              <div class="time-cell-label">Min</div>
+              <input class="time-cell-input" type="number" id="e-int-min" value="1" min="0" max="59" oninput="updatePreview()">
+            </div>
+            <div class="time-cell">
+              <div class="time-cell-label">Sec</div>
+              <input class="time-cell-input" type="number" id="e-int-sec" value="0" min="0" max="59" oninput="updatePreview()">
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-label">Total rounds</div>
+          <div class="number-input-row">
+            <button class="num-btn" onclick="adj('e-rounds', -1)">−</button>
+            <input class="num-value" type="number" id="e-rounds" value="10" min="1" max="99" oninput="updatePreview()">
+            <button class="num-btn" onclick="adj('e-rounds', 1)">+</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="workout-preview">
+          <div class="preview-row">
+            <span class="preview-label">Total duration</span>
+            <span class="preview-value" id="e-total-dur">—</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Rounds</span>
+            <span class="preview-value" id="e-total-rounds">—</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Per round</span>
+            <span class="preview-value" id="e-per-round">—</span>
+          </div>
+        </div>
+
+        <div class="audio-toggle" onclick="toggleAudio('emom')">
+          <div class="toggle-switch on emom-toggle" id="e-audio-sw"><div class="toggle-knob"></div></div>
+          <span>Audio cues</span>
+        </div>
+
+        <button class="start-btn emom-start" onclick="startWorkout('emom')">START EMOM</button>
+      </div>
+    </div>
+
+    <!-- Timer display panel -->
+    <div class="timer-panel" id="timer-panel">
+      <div class="timer-bg-glow" id="bg-glow"></div>
+
+      <!-- Phase banner -->
+      <div class="phase-banner" id="phase-banner">READY</div>
+
+      <!-- Idle state -->
+      <div class="idle-prompt" id="idle-display">
+        <div class="idle-big">00:00</div>
+        <div class="idle-text">Configure and press start →</div>
+      </div>
+
+      <!-- Active timer (hidden initially) -->
+      <div id="active-display" style="display:none; flex-direction:column; align-items:center; gap:2rem;">
+        <div class="ring-container" id="ring-container">
+          <svg class="ring-svg" id="ring-svg" viewBox="0 0 300 300">
+            <circle class="ring-track" cx="150" cy="150" r="138"/>
+            <circle class="ring-progress" id="ring-prog" cx="150" cy="150" r="138"/>
+          </svg>
+          <div class="ring-inner">
+            <div class="time-display" id="time-display">00:00</div>
+            <div class="round-display" id="round-display">ROUND 0 / 0</div>
+          </div>
+        </div>
+
+        <div class="stats-row" id="stats-row">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-elapsed">00:00</div>
+            <div class="stat-label">Elapsed</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-remaining">00:00</div>
+            <div class="stat-label">Remaining</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-rounds">0</div>
+            <div class="stat-label">Round</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="ctrl-btn sm" id="btn-reset" onclick="resetWorkout()" title="Reset (R)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+          </button>
+          <button class="ctrl-btn lg" id="btn-playpause" onclick="togglePlayPause()" title="Space">
+            <svg id="play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21"/>
+            </svg>
+            <svg id="pause-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+              <rect x="6" y="4" width="4" height="16"/>
+              <rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          </button>
+          <button class="ctrl-btn sm" id="btn-skip" onclick="skipInterval()" title="Skip (S)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5,4 15,12 5,20"/>
+              <line x1="19" y1="5" x2="19" y2="19"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="shortcuts">
+      <span class="shortcut-item"><span class="kbd">SPACE</span> start / pause</span>
+      <span class="shortcut-item"><span class="kbd">R</span> reset</span>
+      <span class="shortcut-item"><span class="kbd">S</span> skip interval</span>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.06em;">
+      TABATA &amp; EMOM TIMER
+    </div>
+  </footer>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="history-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">WORKOUT HISTORY</div>
+      <button class="modal-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="modal-body" id="history-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let mode = 'tabata'; // 'tabata' | 'emom'
+let timerState = 'idle'; // 'idle' | 'countdown' | 'running' | 'paused' | 'done'
+let currentPhase = 'work'; // 'work' | 'rest' (tabata)
+let currentRound = 0;
+let totalRounds = 0;
+let intervalSec = 0;
+let timeLeft = 0;
+let totalElapsed = 0;
+let totalDuration = 0;
+let countdownLeft = 3;
+let isPaused = false;
+let audioEnabled = { tabata: true, emom: true };
+
+// Accurate timing
+let tickInterval = null;
+let lastTick = 0;
+let accum = 0;
+
+// Ring
+const CIRCUMFERENCE = 2 * Math.PI * 138;
+
+// AudioContext
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playBeep(freq = 880, dur = 0.12, vol = 0.4) {
+  if (!audioEnabled[mode]) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function playStartBeep() { playBeep(1046, 0.18, 0.5); }
+function playIntervalBeep() { playBeep(880, 0.15, 0.45); }
+function playCountdownBeep() { playBeep(660, 0.1, 0.3); }
+function playLastRoundBeep() {
+  playBeep(1318, 0.1, 0.4);
+  setTimeout(() => playBeep(1318, 0.1, 0.4), 130);
+  setTimeout(() => playBeep(1568, 0.25, 0.5), 260);
+}
+function playDoneBeep() {
+  [0, 150, 300, 500].forEach((t, i) => {
+    setTimeout(() => playBeep([880, 1046, 1318, 1568][i], 0.15, 0.5), t);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// MODE
+// ═══════════════════════════════════════════════
+function setMode(m) {
+  if (timerState !== 'idle') resetWorkout();
+  mode = m;
+  document.getElementById('tabata-config').style.display = m === 'tabata' ? 'flex' : 'none';
+  document.getElementById('tabata-config').style.flexDirection = 'column';
+  document.getElementById('tabata-config').style.gap = '1.5rem';
+  document.getElementById('emom-config').style.display = m === 'emom' ? 'flex' : 'none';
+  document.getElementById('tab-tabata').classList.toggle('active', m === 'tabata');
+  document.getElementById('tab-emom').classList.toggle('active', m === 'emom');
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+function toggleAudio(m) {
+  audioEnabled[m] = !audioEnabled[m];
+  const sw = document.getElementById(m === 'tabata' ? 't-audio-sw' : 'e-audio-sw');
+  sw.classList.toggle('on', audioEnabled[m]);
+  saveSettings();
+}
+
+function adj(id, delta) {
+  const el = document.getElementById(id);
+  const v = parseInt(el.value) + delta;
+  el.value = Math.max(parseInt(el.min)||1, Math.min(99, v));
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════
+// PREVIEW
+// ═══════════════════════════════════════════════
+function fmtSec(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function fmtDisplay(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function getTabataConfig() {
+  const wMin = parseInt(document.getElementById('t-work-min').value) || 0;
+  const wSec = parseInt(document.getElementById('t-work-sec').value) || 0;
+  const rMin = parseInt(document.getElementById('t-rest-min').value) || 0;
+  const rSec = parseInt(document.getElementById('t-rest-sec').value) || 0;
+  const rounds = Math.max(1, parseInt(document.getElementById('t-rounds').value) || 1);
+  return { work: wMin*60+wSec, rest: rMin*60+rSec, rounds };
+}
+
+function getEmomConfig() {
+  const iMin = parseInt(document.getElementById('e-int-min').value) || 0;
+  const iSec = parseInt(document.getElementById('e-int-sec').value) || 0;
+  const rounds = Math.max(1, parseInt(document.getElementById('e-rounds').value) || 1);
+  return { interval: iMin*60+iSec, rounds };
+}
+
+function updatePreview() {
+  if (mode === 'tabata') {
+    const { work, rest, rounds } = getTabataConfig();
+    const total = (work + rest) * rounds;
+    document.getElementById('t-total-dur').textContent = fmtSec(total);
+    document.getElementById('t-total-work').textContent = fmtSec(work * rounds);
+    document.getElementById('t-total-rest').textContent = fmtSec(rest * rounds);
+  } else {
+    const { interval, rounds } = getEmomConfig();
+    const total = interval * rounds;
+    document.getElementById('e-total-dur').textContent = fmtSec(total);
+    document.getElementById('e-total-rounds').textContent = rounds;
+    document.getElementById('e-per-round').textContent = fmtSec(interval);
+  }
+  saveSettings();
+}
+
+// ═══════════════════════════════════════════════
+// TIMER ENGINE
+// ═══════════════════════════════════════════════
+function startWorkout(m) {
+  if (m) mode = m;
+  if (timerState === 'running') return;
+
+  if (timerState === 'idle' || timerState === 'done') {
+    // Init
+    if (mode === 'tabata') {
+      const { work, rest, rounds } = getTabataConfig();
+      if (work === 0) { showToast('Set a work interval'); return; }
+      totalRounds = rounds;
+      totalDuration = (work + rest) * rounds;
+    } else {
+      const { interval, rounds } = getEmomConfig();
+      if (interval === 0) { showToast('Set an interval duration'); return; }
+      totalRounds = rounds;
+      totalDuration = interval * rounds;
+    }
+    currentRound = 0;
+    currentPhase = 'work';
+    totalElapsed = 0;
+    timerState = 'countdown';
+    countdownLeft = 3;
+    showActiveDisplay();
+    setPhaseBanner('ready', 'GET READY');
+    updateTimerDisplay(countdownLeft, 'ready');
+    updateRingProgress(countdownLeft, 3, 'ready');
+  } else if (timerState === 'paused') {
+    resumeTimer();
+    return;
+  }
+
+  // Start countdown
+  lastTick = performance.now();
+  accum = 0;
+  clearInterval(tickInterval);
+  tickInterval = setInterval(tick, 50);
+
+  setPlayPauseIcon(false);
+}
+
+function tick() {
+  const now = performance.now();
+  const delta = now - lastTick;
+  lastTick = now;
+  accum += delta;
+
+  while (accum >= 1000) {
+    accum -= 1000;
+    onSecondTick();
+  }
+}
+
+function onSecondTick() {
+  if (timerState === 'countdown') {
+    countdownLeft--;
+    if (countdownLeft <= 0) {
+      // Start actual workout
+      timerState = 'running';
+      beginNextInterval();
+    } else {
+      playCountdownBeep();
+      updateTimerDisplay(countdownLeft, 'ready');
+      updateRingProgress(countdownLeft, 3, 'ready');
+      triggerPop();
+    }
+  } else if (timerState === 'running') {
+    timeLeft--;
+    totalElapsed++;
+    updateTimerDisplay(timeLeft, currentPhase === 'work' ? 'work' : (mode === 'emom' ? 'emom-phase' : 'rest'));
+    updateStats();
+
+    const fullDur = getIntervalDuration();
+    updateRingProgress(timeLeft, fullDur, currentPhase === 'work' ? 'work' : 'rest');
+
+    if (timeLeft <= 3 && timeLeft > 0) playCountdownBeep();
+
+    if (timeLeft <= 0) {
+      advancePhase();
+    }
+  }
+}
+
+function getIntervalDuration() {
+  if (mode === 'tabata') {
+    const { work, rest } = getTabataConfig();
+    return currentPhase === 'work' ? work : rest;
+  } else {
+    return getEmomConfig().interval;
+  }
+}
+
+function beginNextInterval() {
+  if (mode === 'tabata') {
+    const { work, rest } = getTabataConfig();
+    currentRound++;
+    currentPhase = 'work';
+    timeLeft = work;
+
+    if (currentRound === totalRounds) playLastRoundBeep();
+    else playStartBeep();
+
+    setPhaseBanner('work', 'WORK');
+    updateTimerDisplay(timeLeft, 'work');
+    updateRingProgress(timeLeft, work, 'work');
+    updateRoundDisplay();
+    setPhaseColors('work');
+  } else {
+    const { interval } = getEmomConfig();
+    currentRound++;
+    currentPhase = 'work';
+    timeLeft = interval;
+
+    if (currentRound === totalRounds) playLastRoundBeep();
+    else playStartBeep();
+
+    setPhaseBanner('emom-phase', `ROUND ${currentRound}`);
+    updateTimerDisplay(timeLeft, 'emom-phase');
+    updateRingProgress(timeLeft, interval, 'emom-phase');
+    updateRoundDisplay();
+    setPhaseColors('emom-phase');
+  }
+}
+
+function advancePhase() {
+  if (mode === 'tabata') {
+    const { work, rest } = getTabataConfig();
+    if (currentPhase === 'work') {
+      if (rest > 0) {
+        currentPhase = 'rest';
+        timeLeft = rest;
+        playIntervalBeep();
+        setPhaseBanner('rest', 'REST');
+        updateTimerDisplay(timeLeft, 'rest');
+        updateRingProgress(timeLeft, rest, 'rest');
+        setPhaseColors('rest');
+      } else {
+        // No rest, go to next round
+        if (currentRound >= totalRounds) { finishWorkout(); return; }
+        playIntervalBeep();
+        beginNextInterval();
+      }
+    } else {
+      // rest done
+      if (currentRound >= totalRounds) { finishWorkout(); return; }
+      beginNextInterval();
+    }
+  } else {
+    // EMOM
+    if (currentRound >= totalRounds) { finishWorkout(); return; }
+    playIntervalBeep();
+    beginNextInterval();
+  }
+}
+
+function finishWorkout() {
+  clearInterval(tickInterval);
+  timerState = 'done';
+  playDoneBeep();
+  setPhaseBanner('ready', 'DONE!');
+  updateTimerDisplay(0, 'ready');
+  setPhaseColors('done');
+  setPlayPauseIcon(true);
+  saveToHistory();
+  showToast('Workout complete!');
+}
+
+function togglePlayPause() {
+  if (timerState === 'idle' || timerState === 'done') {
+    startWorkout();
+  } else if (timerState === 'running' || timerState === 'countdown') {
+    pauseTimer();
+  } else if (timerState === 'paused') {
+    resumeTimer();
+  }
+}
+
+function pauseTimer() {
+  clearInterval(tickInterval);
+  timerState = 'paused';
+  setPlayPauseIcon(true);
+}
+
+function resumeTimer() {
+  timerState = 'running';
+  lastTick = performance.now();
+  accum = 0;
+  clearInterval(tickInterval);
+  tickInterval = setInterval(tick, 50);
+  setPlayPauseIcon(false);
+}
+
+function resetWorkout() {
+  clearInterval(tickInterval);
+  timerState = 'idle';
+  currentRound = 0;
+  totalElapsed = 0;
+  setPlayPauseIcon(true);
+  showIdleDisplay();
+  setPhaseColors('idle');
+  setPhaseBanner('ready', 'READY');
+}
+
+function skipInterval() {
+  if (timerState !== 'running' && timerState !== 'paused') return;
+  timeLeft = 0;
+  if (timerState === 'paused') {
+    timerState = 'running';
+    setPlayPauseIcon(false);
+    lastTick = performance.now();
+    accum = 0;
+    clearInterval(tickInterval);
+    tickInterval = setInterval(tick, 50);
+  }
+  advancePhase();
+}
+
+// ═══════════════════════════════════════════════
+// DISPLAY
+// ═══════════════════════════════════════════════
+function showIdleDisplay() {
+  document.getElementById('idle-display').style.display = 'flex';
+  document.getElementById('active-display').style.display = 'none';
+}
+
+function showActiveDisplay() {
+  document.getElementById('idle-display').style.display = 'none';
+  const ad = document.getElementById('active-display');
+  ad.style.display = 'flex';
+  ad.style.flexDirection = 'column';
+  ad.style.alignItems = 'center';
+  ad.style.gap = '2rem';
+  updateRoundDisplay();
+  updateStats();
+}
+
+function updateTimerDisplay(sec, phase) {
+  const el = document.getElementById('time-display');
+  el.textContent = fmtDisplay(sec);
+  el.className = 'time-display ' + (phase || '');
+}
+
+function updateRoundDisplay() {
+  const el = document.getElementById('round-display');
+  el.textContent = `ROUND ${currentRound} / ${totalRounds}`;
+  document.getElementById('stat-rounds').textContent = currentRound;
+}
+
+function updateStats() {
+  document.getElementById('stat-elapsed').textContent = fmtDisplay(totalElapsed);
+  const rem = Math.max(0, totalDuration - totalElapsed);
+  document.getElementById('stat-remaining').textContent = fmtDisplay(rem);
+  document.getElementById('stat-rounds').textContent = currentRound;
+}
+
+function updateRingProgress(current, total, phase) {
+  const prog = document.getElementById('ring-prog');
+  const ratio = total > 0 ? current / total : 0;
+  const offset = CIRCUMFERENCE * (1 - ratio);
+  prog.style.strokeDasharray = CIRCUMFERENCE;
+  prog.style.strokeDashoffset = offset;
+
+  let color = 'var(--work-color)';
+  if (phase === 'rest') color = 'var(--rest-color)';
+  else if (phase === 'emom-phase') color = 'var(--emom-color)';
+  else if (phase === 'ready') color = 'var(--ready-color)';
+  prog.style.stroke = color;
+}
+
+function setPhaseBanner(cls, text) {
+  const el = document.getElementById('phase-banner');
+  el.className = 'phase-banner ' + cls;
+  el.textContent = text;
+}
+
+function setPhaseColors(phase) {
+  const glow = document.getElementById('bg-glow');
+  if (phase === 'work') {
+    glow.style.background = 'radial-gradient(ellipse at center, var(--work-glow) 0%, transparent 70%)';
+    glow.classList.add('visible');
+  } else if (phase === 'rest') {
+    glow.style.background = 'radial-gradient(ellipse at center, var(--rest-glow) 0%, transparent 70%)';
+    glow.classList.add('visible');
+  } else if (phase === 'emom-phase') {
+    glow.style.background = 'radial-gradient(ellipse at center, var(--emom-glow) 0%, transparent 70%)';
+    glow.classList.add('visible');
+  } else if (phase === 'done') {
+    glow.style.background = 'radial-gradient(ellipse at center, rgba(200,245,66,0.1) 0%, transparent 70%)';
+    glow.classList.add('visible');
+  } else {
+    glow.classList.remove('visible');
+  }
+}
+
+function setPlayPauseIcon(showPlay) {
+  document.getElementById('play-icon').style.display = showPlay ? 'block' : 'none';
+  document.getElementById('pause-icon').style.display = showPlay ? 'none' : 'block';
+}
+
+function triggerPop() {
+  const el = document.getElementById('time-display');
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+// ═══════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════
+function saveToHistory() {
+  const history = JSON.parse(localStorage.getItem('wod-history') || '[]');
+  const entry = {
+    mode,
+    date: new Date().toISOString(),
+    duration: totalElapsed,
+    rounds: currentRound,
+    config: mode === 'tabata' ? getTabataConfig() : getEmomConfig()
+  };
+  history.unshift(entry);
+  if (history.length > 50) history.pop();
+  localStorage.setItem('wod-history', JSON.stringify(history));
+}
+
+function openHistory() {
+  const history = JSON.parse(localStorage.getItem('wod-history') || '[]');
+  const body = document.getElementById('history-body');
+  body.innerHTML = '';
+  if (history.length === 0) {
+    body.innerHTML = '<div class="empty-history">No workouts yet. Get after it.</div>';
+  } else {
+    history.forEach((e, i) => {
+      const d = new Date(e.date);
+      const dateStr = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+      const timeStr = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+      let meta = '';
+      if (e.mode === 'tabata') {
+        meta = `${e.config.work}s work / ${e.config.rest}s rest · ${e.config.rounds} rounds`;
+      } else {
+        meta = `${fmtSec(e.config.interval)} interval · ${e.config.rounds} rounds`;
+      }
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <div class="history-info">
+          <div class="history-mode ${e.mode}">${e.mode.toUpperCase()} · ${fmtSec(e.duration)}</div>
+          <div class="history-meta">${dateStr} ${timeStr} &nbsp;·&nbsp; ${meta}</div>
+        </div>
+        <span class="history-load">Load ↗</span>
+      `;
+      item.addEventListener('click', () => { loadConfig(e); closeHistory(); });
+      body.appendChild(item);
+    });
+  }
+  document.getElementById('history-modal').classList.add('open');
+}
+
+function loadConfig(e) {
+  setMode(e.mode);
+  if (e.mode === 'tabata') {
+    document.getElementById('t-work-min').value = Math.floor(e.config.work / 60);
+    document.getElementById('t-work-sec').value = e.config.work % 60;
+    document.getElementById('t-rest-min').value = Math.floor(e.config.rest / 60);
+    document.getElementById('t-rest-sec').value = e.config.rest % 60;
+    document.getElementById('t-rounds').value = e.config.rounds;
+  } else {
+    document.getElementById('e-int-min').value = Math.floor(e.config.interval / 60);
+    document.getElementById('e-int-sec').value = e.config.interval % 60;
+    document.getElementById('e-rounds').value = e.config.rounds;
+  }
+  updatePreview();
+  showToast('Config loaded');
+}
+
+function closeHistory() {
+  document.getElementById('history-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS PERSISTENCE
+// ═══════════════════════════════════════════════
+function saveSettings() {
+  try {
+    const s = {
+      mode,
+      tabata: getTabataConfig(),
+      emom: getEmomConfig(),
+      audio: audioEnabled
+    };
+    localStorage.setItem('wod-settings', JSON.stringify(s));
+  } catch(e) {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('wod-settings');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.tabata) {
+      document.getElementById('t-work-min').value = Math.floor(s.tabata.work / 60);
+      document.getElementById('t-work-sec').value = s.tabata.work % 60;
+      document.getElementById('t-rest-min').value = Math.floor(s.tabata.rest / 60);
+      document.getElementById('t-rest-sec').value = s.tabata.rest % 60;
+      document.getElementById('t-rounds').value = s.tabata.rounds;
+    }
+    if (s.emom) {
+      document.getElementById('e-int-min').value = Math.floor(s.emom.interval / 60);
+      document.getElementById('e-int-sec').value = s.emom.interval % 60;
+      document.getElementById('e-rounds').value = s.emom.rounds;
+    }
+    if (s.audio) {
+      audioEnabled = s.audio;
+      document.getElementById('t-audio-sw').classList.toggle('on', audioEnabled.tabata);
+      document.getElementById('e-audio-sw').classList.toggle('on', audioEnabled.emom);
+    }
+    if (s.mode) setMode(s.mode);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+// WAKE LOCK
+// ═══════════════════════════════════════════════
+let wakeLock = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch(e) {}
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ═══════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlayPause(); }
+  if (e.code === 'KeyR') resetWorkout();
+  if (e.code === 'KeyS') skipInterval();
+});
+
+// Modal close on overlay click
+document.getElementById('history-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeHistory();
+});
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+loadSettings();
+updatePreview();
+</script>
+</body>
+</html>
