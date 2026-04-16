@@ -1097,6 +1097,7 @@ function updatePreview() {
 function startWorkout(m) {
   if (m) mode = m;
   if (timerState === 'running') return;
+  requestWakeLock();
 
   if (timerState === 'idle' || timerState === 'done') {
     // Init
@@ -1251,6 +1252,7 @@ function advancePhase() {
 function finishWorkout() {
   clearInterval(tickInterval);
   timerState = 'done';
+  releaseWakeLock();
   playDoneBeep();
   setPhaseBanner('ready', 'DONE!');
   updateTimerDisplay(0, 'ready');
@@ -1288,6 +1290,7 @@ function resumeTimer() {
 function resetWorkout() {
   clearInterval(tickInterval);
   timerState = 'idle';
+  releaseWakeLock();
   currentRound = 0;
   totalElapsed = 0;
   setPlayPauseIcon(true);
@@ -1551,6 +1554,13 @@ document.addEventListener('keydown', e => {
 // Modal close on overlay click
 document.getElementById('history-modal').addEventListener('click', function(e) {
   if (e.target === this) closeHistory();
+});
+
+// Re-acquire wake lock when user returns to the tab (iOS releases it on tab switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (timerState === 'running' || timerState === 'countdown')) {
+    requestWakeLock();
+  }
 });
 
 // ═══════════════════════════════════════════════
